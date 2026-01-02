@@ -5,19 +5,25 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Logging/LogMacros.h"
+#include "AbilitySystemInterface.h"
 #include "AmaruShooterCharacter.generated.h"
 
+struct FActiveGameplayEffectHandle;
+struct FGameplayAbilitySpecHandle;
+class UInkaDataAsset;
 class UInputComponent;
 class USkeletalMeshComponent;
 class UCameraComponent;
 class UInputAction;
 class UInputMappingContext;
 struct FInputActionValue;
+class UAbilitySystemComponent;
+class AAmaruPlayerState;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
 
 UCLASS(config=Game)
-class AAmaruShooterCharacter : public ACharacter
+class AAmaruShooterCharacter : public ACharacter, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 
@@ -53,23 +59,64 @@ class AAmaruShooterCharacter : public ACharacter
 
 public:
 	AAmaruShooterCharacter();
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+
+	void Server_EnableAbilitiesForMode();
+	void Server_DisableAbilitiesForMode();
 
 protected:
-	/** Called for movement input */
+
+	virtual void PossessedBy(AController* NewController) override;
+
+	virtual void OnRep_PlayerState() override;
+
+	void InitAbilityActorInfo();
+
+protected:
+
+	UPROPERTY(Transient)
+	TObjectPtr<UAbilitySystemComponent> CachedASC = nullptr;
+
+	UPROPERTY(Transient)
+	TObjectPtr<AAmaruPlayerState> CachedPS = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inka", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UInkaDataAsset> InkaDefinition;
+
+	UPROPERTY(Transient)
+	TArray<FGameplayAbilitySpecHandle> GrantedAbilityHandles;
+
+	UPROPERTY(Transient)
+	TArray<FActiveGameplayEffectHandle> StartupEffectHandles;
+
+	void ApplyStartupEffectsFromDefinition();
+	void GiveAbilitiesFromDefinition();
+	void ClearGrantedAbilities();
+
+	UPROPERTY(Transient)
+	bool bStartupApplied = false;
+
 	void Move(const FInputActionValue& Value);
 
-	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
 
-	void Shoot(const FInputActionValue& Value);
+	void OnJumpStarted(const FInputActionValue& Value);
+	void OnJumpCompleted(const FInputActionValue& Value);
 
+	void Shoot(const FInputActionValue& Value);
 	void StopShooting(const FInputActionValue& Value);
 
-	void Ability1(const FInputActionValue& Value);
+	void Ability1Pressed(const FInputActionValue& Value);
+	void Ability1Released(const FInputActionValue& Value);
+	void Ability1Canceled(const FInputActionValue& Value);
 
-	void Ability2(const FInputActionValue& Value);
+	void Ability2Pressed(const FInputActionValue& Value);
+	void Ability2Released(const FInputActionValue& Value);
+	void Ability2Canceled(const FInputActionValue& Value);
 
-	void Ultimate(const FInputActionValue& Value);
+	void UltimatePressed(const FInputActionValue& Value);
+	void UltimateReleased(const FInputActionValue& Value);
+	void UltimateCanceled(const FInputActionValue& Value);
 
 protected:
 	// APawn interface

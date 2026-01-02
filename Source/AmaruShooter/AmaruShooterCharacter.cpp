@@ -1,7 +1,6 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "AmaruShooterCharacter.h"
-#include "Animation/AnimInstance.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -9,9 +8,27 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
 #include "Engine/LocalPlayer.h"
+#include "AmaruPlayerState.h"
+#include "AbilitySystemComponent.h"
+#include "AmaruAttributeSet.h"
+#include "AmaruGameplayAbility.h"
+#include "Enums.h"
+#include "InkaDataAsset.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
+static void PrintInputDebug(const UObject* WorldContext, const FString& Msg)
+{
+	UE_LOG(LogTemplateCharacter, Log, TEXT("%s"), *Msg);
 
+	if (GEngine && WorldContext)
+	{
+		if (const UWorld* World = WorldContext->GetWorld())
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 1.5f, FColor::Cyan, Msg);
+		}
+	}
+}
 //////////////////////////////////////////////////////////////////////////
 // AAmaruShooterCharacter
 
@@ -36,7 +53,69 @@ AAmaruShooterCharacter::AAmaruShooterCharacter()
 
 }
 
-//////////////////////////////////////////////////////////////////////////// Input
+UAbilitySystemComponent* AAmaruShooterCharacter::GetAbilitySystemComponent() const
+{
+	return CachedASC;
+}
+
+void AAmaruShooterCharacter::Server_EnableAbilitiesForMode()
+{
+	if (!HasAuthority()) return;
+	ApplyStartupEffectsFromDefinition();
+	GiveAbilitiesFromDefinition();
+}
+
+void AAmaruShooterCharacter::Server_DisableAbilitiesForMode()
+{
+	if (!HasAuthority()) return;
+	ApplyStartupEffectsFromDefinition();
+	ClearGrantedAbilities();
+}
+
+void AAmaruShooterCharacter::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+	InitAbilityActorInfo();
+}
+
+void AAmaruShooterCharacter::OnRep_PlayerState()
+{
+	Super::OnRep_PlayerState();
+	InitAbilityActorInfo();
+}
+
+void AAmaruShooterCharacter::InitAbilityActorInfo()
+{
+	CachedPS = GetPlayerState<AAmaruPlayerState>();
+	if (!CachedPS)
+	{
+		CachedASC = nullptr;
+		return;
+	}
+
+	CachedASC = CachedPS->GetAbilitySystemComponent();
+	if (!CachedASC)
+	{
+		return;
+	}
+
+	CachedASC->InitAbilityActorInfo(CachedPS, this);
+
+	if (UAmaruAttributeSet* AS = CachedPS->GetAttributeSet())
+	{
+		GetCharacterMovement()->MaxWalkSpeed = AS->GetMoveSpeed();
+
+		CachedASC->GetGameplayAttributeValueChangeDelegate(AS->GetMoveSpeedAttribute())
+			.AddLambda([this](const FOnAttributeChangeData& Data)
+				{
+					if (UCharacterMovementComponent* Move = GetCharacterMovement())
+					{
+						Move->MaxWalkSpeed = Data.NewValue;
+					}
+				});
+	}
+}
+
 
 void AAmaruShooterCharacter::NotifyControllerChanged()
 {
@@ -57,28 +136,26 @@ void AAmaruShooterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerIn
 	// Set up action bindings
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
-		// Jumping
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &AAmaruShooterCharacter::OnJumpStarted);
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &AAmaruShooterCharacter::OnJumpCompleted);
 
-		// Moving
 		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AAmaruShooterCharacter::Move);
-
-		// Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AAmaruShooterCharacter::Look);
 
-		// Shooting
 		EnhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Started, this, &AAmaruShooterCharacter::Shoot);
 		EnhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Completed, this, &AAmaruShooterCharacter::StopShooting);
 
-		// Ability 1
-		EnhancedInputComponent->BindAction(Ability1Action, ETriggerEvent::Started, this, &AAmaruShooterCharacter::Ability1);
+		EnhancedInputComponent->BindAction(Ability1Action, ETriggerEvent::Started, this, &AAmaruShooterCharacter::Ability1Pressed);
+		EnhancedInputComponent->BindAction(Ability1Action, ETriggerEvent::Completed, this, &AAmaruShooterCharacter::Ability1Released);
+		EnhancedInputComponent->BindAction(Ability1Action, ETriggerEvent::Canceled, this, &AAmaruShooterCharacter::Ability1Canceled);
 
-		// Ability 2
-		EnhancedInputComponent->BindAction(Ability2Action, ETriggerEvent::Started, this, &AAmaruShooterCharacter::Ability2);
+		EnhancedInputComponent->BindAction(Ability2Action, ETriggerEvent::Started, this, &AAmaruShooterCharacter::Ability2Pressed);
+		EnhancedInputComponent->BindAction(Ability2Action, ETriggerEvent::Completed, this, &AAmaruShooterCharacter::Ability2Released);
+		EnhancedInputComponent->BindAction(Ability2Action, ETriggerEvent::Canceled, this, &AAmaruShooterCharacter::Ability2Canceled);
 
-		// Ultimate
-		EnhancedInputComponent->BindAction(UltimateAction, ETriggerEvent::Started, this, &AAmaruShooterCharacter::Ultimate);
+		EnhancedInputComponent->BindAction(UltimateAction, ETriggerEvent::Started, this, &AAmaruShooterCharacter::UltimatePressed);
+		EnhancedInputComponent->BindAction(UltimateAction, ETriggerEvent::Completed, this, &AAmaruShooterCharacter::UltimateReleased);
+		EnhancedInputComponent->BindAction(UltimateAction, ETriggerEvent::Canceled, this, &AAmaruShooterCharacter::UltimateCanceled);
 	}
 	else
 	{
@@ -86,6 +163,76 @@ void AAmaruShooterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerIn
 	}
 }
 
+
+void AAmaruShooterCharacter::GiveAbilitiesFromDefinition()
+{
+	if (!HasAuthority()) return;
+	if (!InkaDefinition) return;
+
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	if (!ASC) return;
+
+	if (GrantedAbilityHandles.Num() > 0) return;
+
+	for (const FAmaruGrantedAbility& Entry : InkaDefinition->Abilities)
+	{
+		if (!Entry.AbilityClass) continue;
+
+		FGameplayAbilitySpec Spec(Entry.AbilityClass, Entry.Level, Entry.InputID, this);
+		FGameplayAbilitySpecHandle Handle = ASC->GiveAbility(Spec);
+		GrantedAbilityHandles.Add(Handle);
+	}
+}
+
+void AAmaruShooterCharacter::ApplyStartupEffectsFromDefinition()
+{
+	if (!HasAuthority()) return;
+	if (!InkaDefinition) return;
+
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	if (!ASC) return;
+
+	for (const FActiveGameplayEffectHandle& H : StartupEffectHandles)
+	{
+		if (H.IsValid())
+		{
+			ASC->RemoveActiveGameplayEffect(H);
+		}
+	}
+	StartupEffectHandles.Reset();
+
+	for (const auto EffectClass : InkaDefinition->StartupEffects)
+	{
+		if (!EffectClass) continue;
+
+		FGameplayEffectContextHandle Ctx = ASC->MakeEffectContext();
+		Ctx.AddSourceObject(this);
+
+		FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(EffectClass, 1.f, Ctx);
+		if (SpecHandle.IsValid())
+		{
+			const FActiveGameplayEffectHandle ActiveHandle =
+				ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+
+			StartupEffectHandles.Add(ActiveHandle);
+		}
+	}
+
+}
+
+void AAmaruShooterCharacter::ClearGrantedAbilities()
+{
+	if (!HasAuthority()) return;
+
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	if (!ASC) return;
+
+	for (const FGameplayAbilitySpecHandle& Handle : GrantedAbilityHandles)
+	{
+		ASC->ClearAbility(Handle);
+	}
+	GrantedAbilityHandles.Reset();
+}
 
 void AAmaruShooterCharacter::Move(const FInputActionValue& Value)
 {
@@ -113,23 +260,99 @@ void AAmaruShooterCharacter::Look(const FInputActionValue& Value)
 	}
 }
 
+void AAmaruShooterCharacter::OnJumpStarted(const FInputActionValue& Value)
+{
+	PrintInputDebug(this, TEXT("Jump: Started"));
+	Jump();
+}
+
+void AAmaruShooterCharacter::OnJumpCompleted(const FInputActionValue& Value)
+{
+	PrintInputDebug(this, TEXT("Jump: Completed"));
+	StopJumping();
+}
+
 void AAmaruShooterCharacter::Shoot(const FInputActionValue& Value)
 {
+	PrintInputDebug(this, TEXT("Shoot: Started"));
 }
 
 void AAmaruShooterCharacter::StopShooting(const FInputActionValue& Value)
 {
+	PrintInputDebug(this, TEXT("Shoot: Completed"));
 }
 
-void AAmaruShooterCharacter::Ability1(const FInputActionValue& Value)
+void AAmaruShooterCharacter::Ability1Pressed(const FInputActionValue& Value)
 {
+	PrintInputDebug(this, TEXT("Ability1: Pressed (Started)"));
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+	{
+		ASC->AbilityLocalInputPressed(static_cast<uint8>(EAmaruAbilityInputID::Ability1));
+	}
 }
-
-void AAmaruShooterCharacter::Ability2(const FInputActionValue& Value)
+void AAmaruShooterCharacter::Ability1Released(const FInputActionValue& Value)
 {
+	PrintInputDebug(this, TEXT("Ability1: Released (Completed)"));
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+	{
+		ASC->AbilityLocalInputReleased(static_cast<uint8>(EAmaruAbilityInputID::Ability1));
+	}
 }
-
-void AAmaruShooterCharacter::Ultimate(const FInputActionValue& Value)
+void AAmaruShooterCharacter::Ability1Canceled(const FInputActionValue& Value)
 {
+	PrintInputDebug(this, TEXT("Ability1: Canceled"));
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+	{
+		ASC->AbilityLocalInputReleased(static_cast<uint8>(EAmaruAbilityInputID::Ability1));
+	}
 }
 
+void AAmaruShooterCharacter::Ability2Pressed(const FInputActionValue& Value)
+{
+	PrintInputDebug(this, TEXT("Ability2: Pressed (Started)"));
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+	{
+		ASC->AbilityLocalInputPressed(static_cast<uint8>(EAmaruAbilityInputID::Ability2));
+	}
+}
+void AAmaruShooterCharacter::Ability2Released(const FInputActionValue& Value)
+{
+	PrintInputDebug(this, TEXT("Ability2: Released (Completed)"));
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+	{
+		ASC->AbilityLocalInputReleased(static_cast<uint8>(EAmaruAbilityInputID::Ability2));
+	}
+}
+void AAmaruShooterCharacter::Ability2Canceled(const FInputActionValue& Value)
+{
+	PrintInputDebug(this, TEXT("Ability2: Canceled"));
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+	{
+		ASC->AbilityLocalInputReleased(static_cast<uint8>(EAmaruAbilityInputID::Ability2));
+	}
+}
+
+void AAmaruShooterCharacter::UltimatePressed(const FInputActionValue& Value)
+{
+	PrintInputDebug(this, TEXT("Ultimate: Pressed (Started)"));
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+	{
+		ASC->AbilityLocalInputPressed(static_cast<uint8>(EAmaruAbilityInputID::Ultimate));
+	}
+}
+void AAmaruShooterCharacter::UltimateReleased(const FInputActionValue& Value)
+{
+	PrintInputDebug(this, TEXT("Ultimate: Released (Completed)"));
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+	{
+		ASC->AbilityLocalInputReleased(static_cast<uint8>(EAmaruAbilityInputID::Ultimate));
+	}
+}
+void AAmaruShooterCharacter::UltimateCanceled(const FInputActionValue& Value)
+{
+	PrintInputDebug(this, TEXT("Ultimate: Canceled"));
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+	{
+		ASC->AbilityLocalInputReleased(static_cast<uint8>(EAmaruAbilityInputID::Ultimate));
+	}
+}
