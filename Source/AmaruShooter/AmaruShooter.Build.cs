@@ -8,6 +8,9 @@ public class AmaruShooter : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput" });
+		PublicDependencyModuleNames.AddRange([
+			"Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "GameplayAbilities",
+			"GameplayTasks", "GameplayTags"
+		]);
 	}
 }

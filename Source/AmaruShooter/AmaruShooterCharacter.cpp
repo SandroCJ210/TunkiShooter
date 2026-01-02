@@ -1,7 +1,6 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "AmaruShooterCharacter.h"
-#include "AmaruShooterProjectile.h"
 #include "Animation/AnimInstance.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -67,6 +66,19 @@ void AAmaruShooterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerIn
 
 		// Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AAmaruShooterCharacter::Look);
+
+		// Shooting
+		EnhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Started, this, &AAmaruShooterCharacter::Shoot);
+		EnhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Completed, this, &AAmaruShooterCharacter::StopShooting);
+
+		// Ability 1
+		EnhancedInputComponent->BindAction(Ability1Action, ETriggerEvent::Started, this, &AAmaruShooterCharacter::Ability1);
+
+		// Ability 2
+		EnhancedInputComponent->BindAction(Ability2Action, ETriggerEvent::Started, this, &AAmaruShooterCharacter::Ability2);
+
+		// Ultimate
+		EnhancedInputComponent->BindAction(UltimateAction, ETriggerEvent::Started, this, &AAmaruShooterCharacter::Ultimate);
 	}
 	else
 	{
@@ -100,3 +112,24 @@ void AAmaruShooterCharacter::Look(const FInputActionValue& Value)
 		AddControllerPitchInput(LookAxisVector.Y);
 	}
 }
+
+void AAmaruShooterCharacter::Shoot(const FInputActionValue& Value)
+{
+}
+
+void AAmaruShooterCharacter::StopShooting(const FInputActionValue& Value)
+{
+}
+
+void AAmaruShooterCharacter::Ability1(const FInputActionValue& Value)
+{
+}
+
+void AAmaruShooterCharacter::Ability2(const FInputActionValue& Value)
+{
+}
+
+void AAmaruShooterCharacter::Ultimate(const FInputActionValue& Value)
+{
+}
+
