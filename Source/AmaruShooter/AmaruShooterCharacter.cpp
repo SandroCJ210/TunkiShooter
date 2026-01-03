@@ -15,6 +15,7 @@
 #include "Enums.h"
 #include "InkaDataAsset.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "AmaruAbilitySystemComponent.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 static void PrintInputDebug(const UObject* WorldContext, const FString& Msg)
@@ -93,7 +94,7 @@ void AAmaruShooterCharacter::InitAbilityActorInfo()
 		return;
 	}
 
-	CachedASC = CachedPS->GetAbilitySystemComponent();
+	CachedASC = CachedPS->GetAmaruAbilitySystemComponent();
 	if (!CachedASC)
 	{
 		return;
@@ -285,74 +286,48 @@ void AAmaruShooterCharacter::StopShooting(const FInputActionValue& Value)
 void AAmaruShooterCharacter::Ability1Pressed(const FInputActionValue& Value)
 {
 	PrintInputDebug(this, TEXT("Ability1: Pressed (Started)"));
-	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
-	{
-		ASC->AbilityLocalInputPressed(static_cast<uint8>(EAmaruAbilityInputID::Ability1));
-	}
+	CachedASC->HandleAbilityLocalInputPressed(EAmaruAbilityInputID::Ability1);
 }
 void AAmaruShooterCharacter::Ability1Released(const FInputActionValue& Value)
 {
 	PrintInputDebug(this, TEXT("Ability1: Released (Completed)"));
-	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
-	{
-		ASC->AbilityLocalInputReleased(static_cast<uint8>(EAmaruAbilityInputID::Ability1));
-	}
+	CachedASC->HandleAbilityLocalInputReleased(EAmaruAbilityInputID::Ability1);
 }
 void AAmaruShooterCharacter::Ability1Canceled(const FInputActionValue& Value)
 {
 	PrintInputDebug(this, TEXT("Ability1: Canceled"));
-	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
-	{
-		ASC->AbilityLocalInputReleased(static_cast<uint8>(EAmaruAbilityInputID::Ability1));
-	}
+	CachedASC->HandleAbilityLocalInputReleased(EAmaruAbilityInputID::Ability1);
 }
 
 void AAmaruShooterCharacter::Ability2Pressed(const FInputActionValue& Value)
 {
 	PrintInputDebug(this, TEXT("Ability2: Pressed (Started)"));
-	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
-	{
-		ASC->AbilityLocalInputPressed(static_cast<uint8>(EAmaruAbilityInputID::Ability2));
-	}
+	CachedASC->HandleAbilityLocalInputPressed(EAmaruAbilityInputID::Ability2);
 }
 void AAmaruShooterCharacter::Ability2Released(const FInputActionValue& Value)
 {
 	PrintInputDebug(this, TEXT("Ability2: Released (Completed)"));
-	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
-	{
-		ASC->AbilityLocalInputReleased(static_cast<uint8>(EAmaruAbilityInputID::Ability2));
-	}
+	CachedASC->HandleAbilityLocalInputReleased(EAmaruAbilityInputID::Ability2);
 }
 void AAmaruShooterCharacter::Ability2Canceled(const FInputActionValue& Value)
 {
 	PrintInputDebug(this, TEXT("Ability2: Canceled"));
-	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
-	{
-		ASC->AbilityLocalInputReleased(static_cast<uint8>(EAmaruAbilityInputID::Ability2));
-	}
+	CachedASC->HandleAbilityLocalInputReleased(EAmaruAbilityInputID::Ability2);
 }
 
 void AAmaruShooterCharacter::UltimatePressed(const FInputActionValue& Value)
 {
 	PrintInputDebug(this, TEXT("Ultimate: Pressed (Started)"));
-	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
-	{
-		ASC->AbilityLocalInputPressed(static_cast<uint8>(EAmaruAbilityInputID::Ultimate));
-	}
+	CachedASC->HandleAbilityLocalInputReleased(EAmaruAbilityInputID::Ultimate);
+
 }
 void AAmaruShooterCharacter::UltimateReleased(const FInputActionValue& Value)
 {
 	PrintInputDebug(this, TEXT("Ultimate: Released (Completed)"));
-	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
-	{
-		ASC->AbilityLocalInputReleased(static_cast<uint8>(EAmaruAbilityInputID::Ultimate));
-	}
+	CachedASC->HandleAbilityLocalInputReleased(EAmaruAbilityInputID::Ultimate);
 }
 void AAmaruShooterCharacter::UltimateCanceled(const FInputActionValue& Value)
 {
 	PrintInputDebug(this, TEXT("Ultimate: Canceled"));
-	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
-	{
-		ASC->AbilityLocalInputReleased(static_cast<uint8>(EAmaruAbilityInputID::Ultimate));
-	}
+	CachedASC->HandleAbilityLocalInputReleased(EAmaruAbilityInputID::Ultimate);
 }

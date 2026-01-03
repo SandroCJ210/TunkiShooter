@@ -12,7 +12,7 @@
  */
 
 class UAmaruAttributeSet;
-class UAbilitySystemComponent;
+class UAmaruAbilitySystemComponent;
 class UAttributeSet;
 
 UCLASS()
@@ -25,11 +25,13 @@ public:
 
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
+	UAmaruAbilitySystemComponent* GetAmaruAbilitySystemComponent() const;
+
 	UAmaruAttributeSet* GetAttributeSet() const { return AttributeSet; }
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS")
-	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
+	TObjectPtr<UAmaruAbilitySystemComponent> AbilitySystemComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS")
 	TObjectPtr<UAmaruAttributeSet> AttributeSet;

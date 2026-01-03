@@ -17,7 +17,7 @@ class UCameraComponent;
 class UInputAction;
 class UInputMappingContext;
 struct FInputActionValue;
-class UAbilitySystemComponent;
+class UAmaruAbilitySystemComponent;
 class AAmaruPlayerState;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
@@ -59,6 +59,7 @@ class AAmaruShooterCharacter : public ACharacter, public IAbilitySystemInterface
 
 public:
 	AAmaruShooterCharacter();
+
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
 	void Server_EnableAbilitiesForMode();
@@ -75,7 +76,7 @@ protected:
 protected:
 
 	UPROPERTY(Transient)
-	TObjectPtr<UAbilitySystemComponent> CachedASC = nullptr;
+	TObjectPtr<UAmaruAbilitySystemComponent> CachedASC = nullptr;
 
 	UPROPERTY(Transient)
 	TObjectPtr<AAmaruPlayerState> CachedPS = nullptr;
