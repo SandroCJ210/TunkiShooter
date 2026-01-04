@@ -21,6 +21,18 @@ struct FAmaruGrantedAbility
 	int32 InputID = -1;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TSoftObjectPtr<UTexture2D> Icon;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	FText DisplayName;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	float Cooldown = 0.f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	int32 MaxCharges = 0;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	int32 Level = 1;
 };
 

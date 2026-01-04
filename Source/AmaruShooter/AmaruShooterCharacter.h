@@ -8,6 +8,8 @@
 #include "AbilitySystemInterface.h"
 #include "AmaruShooterCharacter.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAbilityLoadoutChanged);
+
 struct FActiveGameplayEffectHandle;
 struct FGameplayAbilitySpecHandle;
 class UInkaDataAsset;
@@ -73,6 +75,11 @@ protected:
 
 	void InitAbilityActorInfo();
 
+public:
+
+	UPROPERTY(BlueprintAssignable, Category = "UI")
+	FOnAbilityLoadoutChanged OnAbilityLoadoutChanged;
+
 protected:
 
 	UPROPERTY(Transient)
@@ -129,6 +136,9 @@ public:
 	USkeletalMeshComponent* GetMesh1P() const { return Mesh1P; }
 
 	UCameraComponent* GetFirstPersonCameraComponent() const { return FirstPersonCameraComponent; }
+
+	UFUNCTION(BlueprintCallable)
+	UInkaDataAsset* GetInkaDataAsset() const { return InkaDefinition; }
 
 };
 

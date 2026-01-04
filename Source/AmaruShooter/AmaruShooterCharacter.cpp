@@ -115,6 +115,10 @@ void AAmaruShooterCharacter::InitAbilityActorInfo()
 					}
 				});
 	}
+	if (IsLocallyControlled())
+	{
+		OnAbilityLoadoutChanged.Broadcast();
+	}
 }
 
 
@@ -324,7 +328,7 @@ void AAmaruShooterCharacter::UltimatePressed(const FInputActionValue& Value)
 void AAmaruShooterCharacter::UltimateReleased(const FInputActionValue& Value)
 {
 	PrintInputDebug(this, TEXT("Ultimate: Released (Completed)"));
-	CachedASC->HandleAbilityLocalInputReleased(EAmaruAbilityInputID::Ultimate);
+	CachedASC->HandleAbilityLocalInputPressed(EAmaruAbilityInputID::Ultimate);
 }
 void AAmaruShooterCharacter::UltimateCanceled(const FInputActionValue& Value)
 {
