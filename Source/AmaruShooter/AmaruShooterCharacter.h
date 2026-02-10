@@ -20,6 +20,7 @@ class UInputAction;
 class UInputMappingContext;
 struct FInputActionValue;
 class UAmaruAbilitySystemComponent;
+class UAmaruAttributeSet;
 class AAmaruPlayerState;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
@@ -82,10 +83,10 @@ public:
 
 protected:
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "GAS", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UAmaruAbilitySystemComponent> CachedASC = nullptr;
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "GAS", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<AAmaruPlayerState> CachedPS = nullptr;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inka", meta = (AllowPrivateAccess = "true"))
@@ -139,6 +140,15 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	UInkaDataAsset* GetInkaDataAsset() const { return InkaDefinition; }
+
+	UFUNCTION(BlueprintPure, Category = "GAS")
+	AAmaruPlayerState* GetAmaruPlayerState() const { return CachedPS; }
+
+	UFUNCTION(BlueprintPure, Category = "GAS")
+	UAmaruAbilitySystemComponent* GetAmaruAbilitySystemComponent() const { return CachedASC; }
+
+	UFUNCTION(BlueprintPure, Category = "GAS")
+	UAmaruAttributeSet* GetAmaruAttributeSet() const;
 
 };
 

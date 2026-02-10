@@ -26,8 +26,9 @@ public:
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
 	UAmaruAbilitySystemComponent* GetAmaruAbilitySystemComponent() const;
-
-	UAmaruAttributeSet* GetAttributeSet() const { return AttributeSet; }
+	
+	UFUNCTION(BlueprintCallable, Category = "GAS")
+	UAmaruAttributeSet* GetAttributeSet() const { return AttributeSet;}
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS")

@@ -59,6 +59,11 @@ UAbilitySystemComponent* AAmaruShooterCharacter::GetAbilitySystemComponent() con
 	return CachedASC;
 }
 
+UAmaruAttributeSet* AAmaruShooterCharacter::GetAmaruAttributeSet() const
+{
+	return CachedPS ? CachedPS->GetAttributeSet() : nullptr;
+}
+
 void AAmaruShooterCharacter::Server_EnableAbilitiesForMode()
 {
 	if (!HasAuthority()) return;
