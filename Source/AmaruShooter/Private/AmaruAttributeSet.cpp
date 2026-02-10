@@ -41,6 +41,14 @@ void UAmaruAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute,
 	{
 		NewValue = FMath::Max(NewValue, 0.f);
 	}
+	else if (Attribute == GetChargeAbility1Attribute())
+	{
+		NewValue = FMath::Clamp(NewValue, 0.f, GetMaxChargeAbility1());
+	}
+	else if (Attribute == GetChargeAbility2Attribute())
+	{
+		NewValue = FMath::Clamp(NewValue, 0.f, GetMaxChargeAbility2());
+	}
 }
 
 void UAmaruAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data)
@@ -95,4 +103,24 @@ void UAmaruAttributeSet::OnRep_MoveSpeed(const FGameplayAttributeData& OldValue)
 void UAmaruAttributeSet::OnRep_DamageMultiplier(const FGameplayAttributeData& OldValue)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UAmaruAttributeSet, DamageMultiplier, OldValue);
+}
+
+void UAmaruAttributeSet::OnRep_ChargeAbility1(const FGameplayAttributeData& OldValue)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UAmaruAttributeSet, ChargeAbility1, OldValue);
+}
+
+void UAmaruAttributeSet::OnRep_MaxChargeAbility1(const FGameplayAttributeData& OldValue)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UAmaruAttributeSet, MaxChargeAbility1, OldValue);
+}
+
+void UAmaruAttributeSet::OnRep_ChargeAbility2(const FGameplayAttributeData& OldValue)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UAmaruAttributeSet, ChargeAbility2, OldValue);
+}
+
+void UAmaruAttributeSet::OnRep_MaxChargeAbility2(const FGameplayAttributeData& OldValue)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UAmaruAttributeSet, MaxChargeAbility2, OldValue);
 }

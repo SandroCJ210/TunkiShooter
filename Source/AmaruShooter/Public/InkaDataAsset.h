@@ -3,11 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayEffect.h"
 #include "Engine/DataAsset.h"
 #include "InkaDataAsset.generated.h"
 
 class UAmaruGameplayAbility;
-class UGameplayEffect;
 
 USTRUCT(BlueprintType)
 struct FAmaruGrantedAbility
@@ -27,10 +27,7 @@ struct FAmaruGrantedAbility
 	FText DisplayName;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	float Cooldown = 0.f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	int32 MaxCharges = 0;
+	TSubclassOf<UGameplayEffect> CooldownEffect;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	int32 Level = 1;

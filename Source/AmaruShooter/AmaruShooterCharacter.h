@@ -6,9 +6,11 @@
 #include "GameFramework/Character.h"
 #include "Logging/LogMacros.h"
 #include "AbilitySystemInterface.h"
+#include "Enums.h"
 #include "AmaruShooterCharacter.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAbilityLoadoutChanged);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnChargeAbilityChanged, EAmaruAbilityInputID, AbilityInput, float, NewChargeValue);
 
 struct FActiveGameplayEffectHandle;
 struct FGameplayAbilitySpecHandle;
@@ -81,6 +83,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "UI")
 	FOnAbilityLoadoutChanged OnAbilityLoadoutChanged;
 
+	UPROPERTY(BlueprintAssignable, Category = "UI")
+	FOnChargeAbilityChanged OnChargeAbility1Changed;
+
 protected:
 
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "GAS", meta = (AllowPrivateAccess = "true"))
@@ -126,6 +131,13 @@ protected:
 	void UltimatePressed(const FInputActionValue& Value);
 	void UltimateReleased(const FInputActionValue& Value);
 	void UltimateCanceled(const FInputActionValue& Value);
+
+
+	FDelegateHandle MoveSpeedChangedHandle;
+	FDelegateHandle ChargeAbility1ChangedHandle;
+	FDelegateHandle ChargeAbility2ChangedHandle;
+	TWeakObjectPtr<UAmaruAttributeSet> BoundAS;
+	TWeakObjectPtr<UAbilitySystemComponent> BoundASC;
 
 protected:
 	// APawn interface

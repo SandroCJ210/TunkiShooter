@@ -44,6 +44,22 @@ public:
 	FGameplayAttributeData DamageMultiplier;
 	ATTRIBUTE_ACCESSORS(UAmaruAttributeSet, DamageMultiplier)
 
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes|Cost", ReplicatedUsing = OnRep_ChargeAbility1)
+	FGameplayAttributeData ChargeAbility1;
+	ATTRIBUTE_ACCESSORS(UAmaruAttributeSet, ChargeAbility1)
+
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes|Cost", ReplicatedUsing = OnRep_MaxChargeAbility1)
+	FGameplayAttributeData MaxChargeAbility1;
+	ATTRIBUTE_ACCESSORS(UAmaruAttributeSet, MaxChargeAbility1)
+
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes|Cost", ReplicatedUsing = OnRep_ChargeAbility2)
+	FGameplayAttributeData ChargeAbility2;
+	ATTRIBUTE_ACCESSORS(UAmaruAttributeSet, ChargeAbility2)
+
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes|Cost", ReplicatedUsing = OnRep_MaxChargeAbility2)
+	FGameplayAttributeData MaxChargeAbility2;
+	ATTRIBUTE_ACCESSORS(UAmaruAttributeSet, MaxChargeAbility2)
+
 	virtual void PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue) override;
 	virtual void PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data) override;
 
@@ -66,4 +82,18 @@ protected:
 
 	UFUNCTION()
 	void OnRep_DamageMultiplier(const FGameplayAttributeData& OldValue);
+
+	UFUNCTION()
+	void OnRep_ChargeAbility1(const FGameplayAttributeData& OldValue);
+
+	UFUNCTION()
+	void OnRep_MaxChargeAbility1(const FGameplayAttributeData& OldValue);
+
+	UFUNCTION()
+	void OnRep_ChargeAbility2(const FGameplayAttributeData& OldValue);
+
+	UFUNCTION()
+	void OnRep_MaxChargeAbility2(const FGameplayAttributeData& OldValue);
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 };

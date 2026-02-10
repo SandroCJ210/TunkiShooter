@@ -106,19 +106,91 @@ void AAmaruShooterCharacter::InitAbilityActorInfo()
 	}
 
 	CachedASC->InitAbilityActorInfo(CachedPS, this);
+	CachedASC->SetReplicationMode(
+		IsLocallyControlled() ? EGameplayEffectReplicationMode::Mixed : EGameplayEffectReplicationMode::Minimal
+	);
 
 	if (UAmaruAttributeSet* AS = CachedPS->GetAttributeSet())
 	{
 		GetCharacterMovement()->MaxWalkSpeed = AS->GetMoveSpeed();
 
-		CachedASC->GetGameplayAttributeValueChangeDelegate(AS->GetMoveSpeedAttribute())
+		const bool bASCChanged = BoundASC.Get() != CachedASC;
+		const bool bASChanged  = BoundAS.Get() != AS;
+
+	if ((bASCChanged || bASChanged))
+	{
+		MoveSpeedChangedHandle.Reset();
+		ChargeAbility1ChangedHandle.Reset();
+		ChargeAbility2ChangedHandle.Reset();
+
+		BoundASC = CachedASC;
+		BoundAS  = AS;
+	}
+
+	if (!MoveSpeedChangedHandle.IsValid())
+	{
+		MoveSpeedChangedHandle =
+			CachedASC->GetGameplayAttributeValueChangeDelegate(AS->GetMoveSpeedAttribute())
 			.AddLambda([this](const FOnAttributeChangeData& Data)
+			{
+				if (UCharacterMovementComponent* Move = GetCharacterMovement())
 				{
-					if (UCharacterMovementComponent* Move = GetCharacterMovement())
+					Move->MaxWalkSpeed = Data.NewValue;
+				}
+			});
+	}
+
+
+	if (!ChargeAbility1ChangedHandle.IsValid())
+	{
+		ChargeAbility1ChangedHandle =
+			CachedASC->GetGameplayAttributeValueChangeDelegate(AS->GetChargeAbility1Attribute())
+			.AddLambda([this](const FOnAttributeChangeData& Data)
+			{
+				if (Data.NewValue < Data.OldValue)
+				{
+					CachedASC->BP_ApplyGameplayEffectToSelf(InkaDefinition->Abilities[0].CooldownEffect,0.f, FGameplayEffectContextHandle());
+				}else
+				{
+					if (Data.NewValue >= GetAmaruAttributeSet()->GetChargeAbility1())
 					{
-						Move->MaxWalkSpeed = Data.NewValue;
+						FGameplayTagContainer TagsToRemove;
+						TagsToRemove.AddTag(FGameplayTag::RequestGameplayTag(FName("Status.Ability1.Recharging")));
+						CachedASC->RemoveActiveEffectsWithGrantedTags(TagsToRemove);
 					}
-				});
+				}
+				if (IsLocallyControlled())
+				{
+					OnChargeAbility1Changed.Broadcast(EAmaruAbilityInputID::Ability1, Data.NewValue);
+				}
+			});
+	}
+
+	if (!ChargeAbility2ChangedHandle.IsValid())
+	{
+		ChargeAbility2ChangedHandle =
+			CachedASC->GetGameplayAttributeValueChangeDelegate(AS->GetChargeAbility2Attribute())
+			.AddLambda([this](const FOnAttributeChangeData& Data)
+			{
+				if (Data.NewValue < Data.OldValue)
+				{
+					CachedASC->BP_ApplyGameplayEffectToSelf(InkaDefinition->Abilities[1].CooldownEffect, 0.f, FGameplayEffectContextHandle());
+				}
+				else
+				{
+					if (Data.NewValue >= GetAmaruAttributeSet()->GetChargeAbility2())
+					{
+						FGameplayTagContainer TagsToRemove;
+						TagsToRemove.AddTag(FGameplayTag::RequestGameplayTag(FName("Status.Ability2.Recharging")));
+						CachedASC->RemoveActiveEffectsWithGrantedTags(TagsToRemove);
+					}
+				}
+				if (IsLocallyControlled())
+				{
+					OnChargeAbility1Changed.Broadcast(EAmaruAbilityInputID::Ability2, Data.NewValue);
+				}
+			});
+	}
 	}
 	if (IsLocallyControlled())
 	{
@@ -272,71 +344,58 @@ void AAmaruShooterCharacter::Look(const FInputActionValue& Value)
 
 void AAmaruShooterCharacter::OnJumpStarted(const FInputActionValue& Value)
 {
-	PrintInputDebug(this, TEXT("Jump: Started"));
 	Jump();
 }
 
 void AAmaruShooterCharacter::OnJumpCompleted(const FInputActionValue& Value)
 {
-	PrintInputDebug(this, TEXT("Jump: Completed"));
 	StopJumping();
 }
 
 void AAmaruShooterCharacter::Shoot(const FInputActionValue& Value)
 {
-	PrintInputDebug(this, TEXT("Shoot: Started"));
 }
 
 void AAmaruShooterCharacter::StopShooting(const FInputActionValue& Value)
 {
-	PrintInputDebug(this, TEXT("Shoot: Completed"));
 }
 
 void AAmaruShooterCharacter::Ability1Pressed(const FInputActionValue& Value)
 {
-	PrintInputDebug(this, TEXT("Ability1: Pressed (Started)"));
 	CachedASC->HandleAbilityLocalInputPressed(EAmaruAbilityInputID::Ability1);
 }
 void AAmaruShooterCharacter::Ability1Released(const FInputActionValue& Value)
 {
-	PrintInputDebug(this, TEXT("Ability1: Released (Completed)"));
 	CachedASC->HandleAbilityLocalInputReleased(EAmaruAbilityInputID::Ability1);
 }
 void AAmaruShooterCharacter::Ability1Canceled(const FInputActionValue& Value)
 {
-	PrintInputDebug(this, TEXT("Ability1: Canceled"));
 	CachedASC->HandleAbilityLocalInputReleased(EAmaruAbilityInputID::Ability1);
 }
 
 void AAmaruShooterCharacter::Ability2Pressed(const FInputActionValue& Value)
 {
-	PrintInputDebug(this, TEXT("Ability2: Pressed (Started)"));
 	CachedASC->HandleAbilityLocalInputPressed(EAmaruAbilityInputID::Ability2);
 }
 void AAmaruShooterCharacter::Ability2Released(const FInputActionValue& Value)
 {
-	PrintInputDebug(this, TEXT("Ability2: Released (Completed)"));
 	CachedASC->HandleAbilityLocalInputReleased(EAmaruAbilityInputID::Ability2);
 }
 void AAmaruShooterCharacter::Ability2Canceled(const FInputActionValue& Value)
 {
-	PrintInputDebug(this, TEXT("Ability2: Canceled"));
 	CachedASC->HandleAbilityLocalInputReleased(EAmaruAbilityInputID::Ability2);
 }
 
 void AAmaruShooterCharacter::UltimatePressed(const FInputActionValue& Value)
 {
-	PrintInputDebug(this, TEXT("Ultimate: Pressed (Started)"));
 	CachedASC->HandleAbilityLocalInputReleased(EAmaruAbilityInputID::Ultimate);
 
 }
 void AAmaruShooterCharacter::UltimateReleased(const FInputActionValue& Value)
 {
-	PrintInputDebug(this, TEXT("Ultimate: Released (Completed)"));
 	CachedASC->HandleAbilityLocalInputPressed(EAmaruAbilityInputID::Ultimate);
 }
 void AAmaruShooterCharacter::UltimateCanceled(const FInputActionValue& Value)
 {
-	PrintInputDebug(this, TEXT("Ultimate: Canceled"));
 	CachedASC->HandleAbilityLocalInputReleased(EAmaruAbilityInputID::Ultimate);
 }
