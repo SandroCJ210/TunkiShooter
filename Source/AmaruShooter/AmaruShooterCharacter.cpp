@@ -15,6 +15,7 @@
 #include "Enums.h"
 #include "InkaDataAsset.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "AbilitySystemBlueprintLibrary.h"
 #include "AmaruAbilitySystemComponent.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
@@ -263,6 +264,7 @@ void AAmaruShooterCharacter::GiveAbilitiesFromDefinition()
 		FGameplayAbilitySpec Spec(Entry.AbilityClass, Entry.Level, Entry.InputID, this);
 		FGameplayAbilitySpecHandle Handle = ASC->GiveAbility(Spec);
 		GrantedAbilityHandles.Add(Handle);
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(GetPlayerState(), FGameplayTag::RequestGameplayTag(FName("Event.GrantedAbility")), FGameplayEventData());
 	}
 }
 
