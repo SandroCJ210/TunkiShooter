@@ -84,7 +84,7 @@ public:
 	FOnAbilityLoadoutChanged OnAbilityLoadoutChanged;
 
 	UPROPERTY(BlueprintAssignable, Category = "UI")
-	FOnChargeAbilityChanged OnChargeAbility1Changed;
+	FOnChargeAbilityChanged OnChargeAbilityChanged;
 
 protected:
 

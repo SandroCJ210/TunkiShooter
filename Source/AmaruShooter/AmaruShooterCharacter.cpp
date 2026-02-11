@@ -161,7 +161,7 @@ void AAmaruShooterCharacter::InitAbilityActorInfo()
 				}
 				if (IsLocallyControlled())
 				{
-					OnChargeAbility1Changed.Broadcast(EAmaruAbilityInputID::Ability1, Data.NewValue);
+					OnChargeAbilityChanged.Broadcast(EAmaruAbilityInputID::Ability1, Data.NewValue);
 				}
 			});
 	}
@@ -187,7 +187,7 @@ void AAmaruShooterCharacter::InitAbilityActorInfo()
 				}
 				if (IsLocallyControlled())
 				{
-					OnChargeAbility1Changed.Broadcast(EAmaruAbilityInputID::Ability2, Data.NewValue);
+					OnChargeAbilityChanged.Broadcast(EAmaruAbilityInputID::Ability2, Data.NewValue);
 				}
 			});
 	}
