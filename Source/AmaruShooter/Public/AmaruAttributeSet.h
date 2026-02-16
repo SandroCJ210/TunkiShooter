@@ -37,7 +37,7 @@ public:
 	ATTRIBUTE_ACCESSORS(UAmaruAttributeSet, MaxShield)
 
 	UPROPERTY(BlueprintReadOnly, Category = "Attributes|Movement", ReplicatedUsing = OnRep_MoveSpeed)
-	FGameplayAttributeData MoveSpeed;
+	FGameplayAttributeData MoveSpeed = 100.f;
 	ATTRIBUTE_ACCESSORS(UAmaruAttributeSet, MoveSpeed)
 
 	UPROPERTY(BlueprintReadOnly, Category = "Attributes|Damage", ReplicatedUsing = OnRep_DamageMultiplier)

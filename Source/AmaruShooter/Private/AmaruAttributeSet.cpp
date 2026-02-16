@@ -21,6 +21,12 @@ void UAmaruAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 
 	DOREPLIFETIME_CONDITION_NOTIFY(UAmaruAttributeSet, MoveSpeed, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UAmaruAttributeSet, DamageMultiplier, COND_None, REPNOTIFY_Always);
+
+	DOREPLIFETIME_CONDITION_NOTIFY(UAmaruAttributeSet, ChargeAbility1, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UAmaruAttributeSet, MaxChargeAbility1, COND_None, REPNOTIFY_Always);
+
+	DOREPLIFETIME_CONDITION_NOTIFY(UAmaruAttributeSet, ChargeAbility2, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UAmaruAttributeSet, MaxChargeAbility2, COND_None, REPNOTIFY_Always);
 }
 
 void UAmaruAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue)

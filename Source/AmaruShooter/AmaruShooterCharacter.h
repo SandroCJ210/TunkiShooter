@@ -65,6 +65,8 @@ class AAmaruShooterCharacter : public ACharacter, public IAbilitySystemInterface
 public:
 	AAmaruShooterCharacter();
 
+	virtual void BeginPlay() override;
+
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
 	void Server_EnableAbilitiesForMode();
@@ -75,6 +77,8 @@ protected:
 	virtual void PossessedBy(AController* NewController) override;
 
 	virtual void OnRep_PlayerState() override;
+
+	virtual void OnRep_Controller() override;
 
 	void InitAbilityActorInfo();
 
@@ -139,9 +143,7 @@ protected:
 	TWeakObjectPtr<UAmaruAttributeSet> BoundAS;
 	TWeakObjectPtr<UAbilitySystemComponent> BoundASC;
 
-protected:
 	// APawn interface
-	virtual void NotifyControllerChanged() override;
 	virtual void SetupPlayerInputComponent(UInputComponent* InputComponent) override;
 	// End of APawn interface
 

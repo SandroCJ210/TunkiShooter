@@ -55,6 +55,27 @@ AAmaruShooterCharacter::AAmaruShooterCharacter()
 
 }
 
+void AAmaruShooterCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+
+	const UWorld* W = GetWorld();
+	const ENetMode NM = W ? W->GetNetMode() : NM_Standalone;
+
+	UE_LOG(LogTemplateCharacter, Warning,
+		TEXT("BeginPlay %s | NetMode=%d HasAuthority=%d IsLocallyControlled=%d Controller=%s"),
+		*GetName(), (int)NM, HasAuthority(), IsLocallyControlled(), *GetNameSafe(Controller));
+	UE_LOG(LogTemplateCharacter, Warning, TEXT("BeginPlay | %s | Owner=%s Instigator=%s"),
+		*GetName(), *GetNameSafe(GetOwner()), *GetNameSafe(GetInstigator()));
+	UE_LOG(LogTemplateCharacter, Warning, TEXT("BeginPlay | %s | Class=%s | Level=%s"),
+		*GetName(),
+		*GetClass()->GetPathName(),
+		*GetLevel()->GetOuter()->GetName());
+
+
+}
+
+
 UAbilitySystemComponent* AAmaruShooterCharacter::GetAbilitySystemComponent() const
 {
 	return CachedASC;
@@ -82,6 +103,11 @@ void AAmaruShooterCharacter::Server_DisableAbilitiesForMode()
 void AAmaruShooterCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
+	UE_LOG(LogTemplateCharacter, Warning,
+		TEXT("PossessedBy %s | Controller=%s | NetMode=%d"),
+		*GetName(), *GetNameSafe(NewController),
+		GetWorld() ? (int)GetWorld()->GetNetMode() : -1);
+
 	InitAbilityActorInfo();
 }
 
@@ -90,6 +116,17 @@ void AAmaruShooterCharacter::OnRep_PlayerState()
 	Super::OnRep_PlayerState();
 	InitAbilityActorInfo();
 }
+
+void AAmaruShooterCharacter::OnRep_Controller()
+{
+	Super::OnRep_Controller();
+	UE_LOG(LogTemplateCharacter, Warning,
+		TEXT("OnRep_Controller %s | Controller=%s | Local=%d | NetMode=%d"),
+		*GetName(), *GetNameSafe(Controller),
+		IsLocallyControlled(),
+		GetWorld() ? (int)GetWorld()->GetNetMode() : -1);
+}
+
 
 void AAmaruShooterCharacter::InitAbilityActorInfo()
 {
@@ -199,24 +236,8 @@ void AAmaruShooterCharacter::InitAbilityActorInfo()
 	}
 }
 
-
-void AAmaruShooterCharacter::NotifyControllerChanged()
-{
-	Super::NotifyControllerChanged();
-
-	// Add Input Mapping Context
-	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
-	{
-		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
-		{
-			Subsystem->AddMappingContext(DefaultMappingContext, 0);
-		}
-	}
-}
-
 void AAmaruShooterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {	
-	// Set up action bindings
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &AAmaruShooterCharacter::OnJumpStarted);
@@ -323,7 +344,10 @@ void AAmaruShooterCharacter::Move(const FInputActionValue& Value)
 	// input is a Vector2D
 	FVector2D MovementVector = Value.Get<FVector2D>();
 
-	if (Controller != nullptr)
+	UE_LOG(LogTemplateCharacter, Warning, TEXT("Move called %s | Local=%d Controller=%s Vec=(%f,%f)"),
+		*GetName(), IsLocallyControlled(), *GetNameSafe(Controller), MovementVector.X, MovementVector.Y);
+
+	if (Controller)
 	{
 		// add movement 
 		AddMovementInput(GetActorForwardVector(), MovementVector.Y);
@@ -336,7 +360,7 @@ void AAmaruShooterCharacter::Look(const FInputActionValue& Value)
 	// input is a Vector2D
 	FVector2D LookAxisVector = Value.Get<FVector2D>();
 
-	if (Controller != nullptr)
+	if (Controller)
 	{
 		// add yaw and pitch input to controller
 		AddControllerYawInput(LookAxisVector.X);
@@ -390,12 +414,12 @@ void AAmaruShooterCharacter::Ability2Canceled(const FInputActionValue& Value)
 
 void AAmaruShooterCharacter::UltimatePressed(const FInputActionValue& Value)
 {
-	CachedASC->HandleAbilityLocalInputReleased(EAmaruAbilityInputID::Ultimate);
+	CachedASC->HandleAbilityLocalInputPressed(EAmaruAbilityInputID::Ultimate);
 
 }
 void AAmaruShooterCharacter::UltimateReleased(const FInputActionValue& Value)
 {
-	CachedASC->HandleAbilityLocalInputPressed(EAmaruAbilityInputID::Ultimate);
+	CachedASC->HandleAbilityLocalInputReleased(EAmaruAbilityInputID::Ultimate);
 }
 void AAmaruShooterCharacter::UltimateCanceled(const FInputActionValue& Value)
 {

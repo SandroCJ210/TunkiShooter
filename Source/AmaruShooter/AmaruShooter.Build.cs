@@ -10,7 +10,7 @@ public class AmaruShooter : ModuleRules
 
 		PublicDependencyModuleNames.AddRange([
 			"Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "GameplayAbilities",
-			"GameplayTasks", "GameplayTags"
-		]);
+			"GameplayTasks", "GameplayTags", "UMG"
+        ]);
 	}
 }
