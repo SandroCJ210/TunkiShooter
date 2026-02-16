@@ -144,9 +144,6 @@ void AAmaruShooterCharacter::InitAbilityActorInfo()
 	}
 
 	CachedASC->InitAbilityActorInfo(CachedPS, this);
-	CachedASC->SetReplicationMode(
-		IsLocallyControlled() ? EGameplayEffectReplicationMode::Mixed : EGameplayEffectReplicationMode::Minimal
-	);
 
 	if (UAmaruAttributeSet* AS = CachedPS->GetAttributeSet())
 	{
@@ -185,13 +182,19 @@ void AAmaruShooterCharacter::InitAbilityActorInfo()
 			CachedASC->GetGameplayAttributeValueChangeDelegate(AS->GetChargeAbility1Attribute())
 			.AddLambda([this](const FOnAttributeChangeData& Data)
 			{
-				if (Data.NewValue < Data.OldValue)
+				if (HasAuthority())
 				{
-					CachedASC->BP_ApplyGameplayEffectToSelf(InkaDefinition->Abilities[0].CooldownEffect,0.f, FGameplayEffectContextHandle());
-				}else
-				{
-					if (Data.NewValue >= GetAmaruAttributeSet()->GetChargeAbility1())
+					if (Data.NewValue < Data.OldValue)
 					{
+						if (InkaDefinition && InkaDefinition->Abilities.IsValidIndex(0) && InkaDefinition->Abilities[0].CooldownEffect)
+						{
+							CachedASC->BP_ApplyGameplayEffectToSelf(InkaDefinition->Abilities[0].CooldownEffect, 0.f, FGameplayEffectContextHandle());
+
+						}
+					}
+					else
+					{
+
 						FGameplayTagContainer TagsToRemove;
 						TagsToRemove.AddTag(FGameplayTag::RequestGameplayTag(FName("Status.Ability1.Recharging")));
 						CachedASC->RemoveActiveEffectsWithGrantedTags(TagsToRemove);
@@ -210,14 +213,18 @@ void AAmaruShooterCharacter::InitAbilityActorInfo()
 			CachedASC->GetGameplayAttributeValueChangeDelegate(AS->GetChargeAbility2Attribute())
 			.AddLambda([this](const FOnAttributeChangeData& Data)
 			{
-				if (Data.NewValue < Data.OldValue)
+				if (HasAuthority())
 				{
-					CachedASC->BP_ApplyGameplayEffectToSelf(InkaDefinition->Abilities[1].CooldownEffect, 0.f, FGameplayEffectContextHandle());
-				}
-				else
-				{
-					if (Data.NewValue >= GetAmaruAttributeSet()->GetChargeAbility2())
+					if (Data.NewValue < Data.OldValue)
 					{
+						if (InkaDefinition && InkaDefinition->Abilities.IsValidIndex(1) && InkaDefinition->Abilities[1].CooldownEffect)
+						{
+							CachedASC->BP_ApplyGameplayEffectToSelf(InkaDefinition->Abilities[1].CooldownEffect, 0.f, FGameplayEffectContextHandle());
+						}
+					}
+					else
+					{
+
 						FGameplayTagContainer TagsToRemove;
 						TagsToRemove.AddTag(FGameplayTag::RequestGameplayTag(FName("Status.Ability2.Recharging")));
 						CachedASC->RemoveActiveEffectsWithGrantedTags(TagsToRemove);
@@ -388,40 +395,49 @@ void AAmaruShooterCharacter::StopShooting(const FInputActionValue& Value)
 
 void AAmaruShooterCharacter::Ability1Pressed(const FInputActionValue& Value)
 {
+	if (!CachedASC) return;
 	CachedASC->HandleAbilityLocalInputPressed(EAmaruAbilityInputID::Ability1);
 }
 void AAmaruShooterCharacter::Ability1Released(const FInputActionValue& Value)
 {
+	if (!CachedASC) return;
 	CachedASC->HandleAbilityLocalInputReleased(EAmaruAbilityInputID::Ability1);
 }
 void AAmaruShooterCharacter::Ability1Canceled(const FInputActionValue& Value)
 {
+	if (!CachedASC) return;
 	CachedASC->HandleAbilityLocalInputReleased(EAmaruAbilityInputID::Ability1);
 }
 
 void AAmaruShooterCharacter::Ability2Pressed(const FInputActionValue& Value)
 {
+	if (!CachedASC) return;
 	CachedASC->HandleAbilityLocalInputPressed(EAmaruAbilityInputID::Ability2);
 }
 void AAmaruShooterCharacter::Ability2Released(const FInputActionValue& Value)
 {
+	if (!CachedASC) return;
 	CachedASC->HandleAbilityLocalInputReleased(EAmaruAbilityInputID::Ability2);
 }
 void AAmaruShooterCharacter::Ability2Canceled(const FInputActionValue& Value)
 {
+	if (!CachedASC) return;
 	CachedASC->HandleAbilityLocalInputReleased(EAmaruAbilityInputID::Ability2);
 }
 
 void AAmaruShooterCharacter::UltimatePressed(const FInputActionValue& Value)
 {
+	if (!CachedASC) return;
 	CachedASC->HandleAbilityLocalInputPressed(EAmaruAbilityInputID::Ultimate);
 
 }
 void AAmaruShooterCharacter::UltimateReleased(const FInputActionValue& Value)
 {
+	if (!CachedASC) return;
 	CachedASC->HandleAbilityLocalInputReleased(EAmaruAbilityInputID::Ultimate);
 }
 void AAmaruShooterCharacter::UltimateCanceled(const FInputActionValue& Value)
 {
+	if (!CachedASC) return;
 	CachedASC->HandleAbilityLocalInputReleased(EAmaruAbilityInputID::Ultimate);
 }

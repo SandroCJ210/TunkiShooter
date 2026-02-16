@@ -18,6 +18,9 @@ struct FWeaponConfig
 
 	UPROPERTY(EditAnywhere)
 	FName EquippedSocketName;
+
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<UAnimInstance> AnimationClass;
 };
 
 UCLASS()

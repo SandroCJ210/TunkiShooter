@@ -13,6 +13,7 @@ AAmaruPlayerState::AAmaruPlayerState()
 
 	AbilitySystemComponent = CreateDefaultSubobject<UAmaruAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	AbilitySystemComponent->SetIsReplicated(true);
+	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
 	
 	AttributeSet = CreateDefaultSubobject<UAmaruAttributeSet>(TEXT("AttributeSet"));
 }

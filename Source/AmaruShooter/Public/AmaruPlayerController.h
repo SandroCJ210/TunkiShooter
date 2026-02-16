@@ -15,6 +15,27 @@ class AMARUSHOOTER_API AAmaruPlayerController : public APlayerController
 {
 	GENERATED_BODY()
 
+
+    template <typename ParamStruct = void>
+    static bool CallBPFunction(UObject* Target, const FName& FuncName, ParamStruct* Params = nullptr)
+    {
+        if (!Target)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Target is null for %s"), *FuncName.ToString());
+            return false;
+        }
+
+        if (UFunction* Func = Target->FindFunction(FuncName))
+        {
+            Target->ProcessEvent(Func, Params);
+            return true;
+        }
+
+        UE_LOG(LogTemp, Warning, TEXT("%s not implemented in %s"),
+            *FuncName.ToString(), *Target->GetName());
+        return false;
+    }
+
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input)
 	class UInputMappingContext* DefaultMappingContext;
@@ -22,7 +43,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TSubclassOf<UUserWidget> HUDInkaClass;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(Transient, BlueprintReadOnly)
 	UUserWidget* HUDInka;
 
 	UFUNCTION()
@@ -32,4 +53,6 @@ public:
 	virtual void BeginPlay() override;
 
 	virtual void OnPossess(APawn* InPawn) override;
+
+	virtual void OnRep_PlayerState() override;
 };

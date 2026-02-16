@@ -5,6 +5,7 @@
 
 #include "EnhancedInputSubsystems.h"
 #include "InputMappingContext.h"
+#include "AmaruShooter/AmaruPlayerState.h"
 
 void AAmaruPlayerController::CreateHUDInka()
 {
@@ -38,16 +39,30 @@ void AAmaruPlayerController::BeginPlay()
     }
     UE_LOG(LogTemp, Warning, TEXT("PC %s Local=%d DefaultMappingContext=%s"),
         *GetName(), IsLocalPlayerController(), *GetNameSafe(DefaultMappingContext));
-
     CreateHUDInka();
+
 }
 
 void AAmaruPlayerController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
+    if (!IsLocalPlayerController()) return;
+	CreateHUDInka();
+}
 
-    UE_LOG(LogTemp, Warning, TEXT("PC %s OnPossess Pawn=%s Local=%d"),
-        *GetName(), *GetNameSafe(InPawn), IsLocalPlayerController());
-
+void AAmaruPlayerController::OnRep_PlayerState()
+{
+	Super::OnRep_PlayerState();
     CreateHUDInka();
+    if (!IsLocalPlayerController() || !HUDInka) return;
+
+    if (AAmaruPlayerState* APS = GetPlayerState<AAmaruPlayerState>())
+    {
+        if (UAbilitySystemComponent* ASC = APS->GetAbilitySystemComponent())
+        {
+            struct FParam { UAbilitySystemComponent* ASC; };
+			FParam Params{ ASC };
+            CallBPFunction(HUDInka, FName("SetupAbilitySystemComponent"), &Params);
+        }
+    }
 }
