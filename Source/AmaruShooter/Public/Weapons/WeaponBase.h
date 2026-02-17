@@ -4,24 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "../Enums.h"
 #include "WeaponBase.generated.h"
 
 class UGameplayAbility;
-
-USTRUCT(BlueprintType)
-struct FWeaponConfig
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere)
-	TArray<UGameplayAbility*> AbilitiesToGrant;
-
-	UPROPERTY(EditAnywhere)
-	FName EquippedSocketName;
-
-	UPROPERTY(EditAnywhere)
-	TSubclassOf<UAnimInstance> AnimationClass;
-};
 
 UCLASS()
 class AMARUSHOOTER_API AWeaponBase : public AActor
@@ -36,11 +22,11 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-	UPROPERTY(EditAnywhere)
-	FWeaponConfig WeaponConfig;
-
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+
+	UPROPERTY(EditAnywhere)
+	FWeaponConfig WeaponConfig;
 
 };

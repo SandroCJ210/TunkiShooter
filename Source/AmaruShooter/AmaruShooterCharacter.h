@@ -9,6 +9,7 @@
 #include "Enums.h"
 #include "AmaruShooterCharacter.generated.h"
 
+class UAmaruGameplayAbility;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAbilityLoadoutChanged);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnChargeAbilityChanged, EAmaruAbilityInputID, AbilityInput, float, NewChargeValue);
 
@@ -24,6 +25,7 @@ struct FInputActionValue;
 class UAmaruAbilitySystemComponent;
 class UAmaruAttributeSet;
 class AAmaruPlayerState;
+class USpringArmComponent;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
 
@@ -38,8 +40,14 @@ class AAmaruShooterCharacter : public ACharacter, public IAbilitySystemInterface
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh, meta = (AllowPrivateAccess = "true"))
 	USkeletalMeshComponent* Mesh3P;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh, meta = (AllowPrivateAccess = "true"))
+	USpringArmComponent* CameraBoom;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FirstPersonCameraComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	UCameraComponent* ThirdPersonCameraComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputMappingContext* DefaultMappingContext;
@@ -110,6 +118,9 @@ protected:
 	UPROPERTY(Transient)
 	TArray<FActiveGameplayEffectHandle> StartupEffectHandles;
 
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<UAmaruGameplayAbility> EquipWeaponAbility;
+
 	void ApplyStartupEffectsFromDefinition();
 	void GiveAbilitiesFromDefinition();
 	void ClearGrantedAbilities();
@@ -152,6 +163,7 @@ protected:
 
 public:
 	USkeletalMeshComponent* GetMesh1P() const { return Mesh1P; }
+	USkeletalMeshComponent* GetMesh3P() const { return Mesh3P; }
 
 	UCameraComponent* GetFirstPersonCameraComponent() const { return FirstPersonCameraComponent; }
 

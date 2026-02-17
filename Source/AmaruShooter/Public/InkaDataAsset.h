@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameplayEffect.h"
 #include "Engine/DataAsset.h"
+#include "GameplayTagContainer.h"
 #include "InkaDataAsset.generated.h"
 
 class UAmaruGameplayAbility;
@@ -43,4 +44,7 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS")
 	TArray<TSubclassOf<UGameplayEffect>> StartupEffects;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Tags")
+	FGameplayTag WeaponTag;
 };

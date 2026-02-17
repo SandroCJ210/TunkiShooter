@@ -17,6 +17,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AmaruAbilitySystemComponent.h"
+#include "GameFramework/SpringArmComponent.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 static void PrintInputDebug(const UObject* WorldContext, const FString& Msg)
@@ -42,10 +43,9 @@ AAmaruShooterCharacter::AAmaruShooterCharacter()
 	// Create a CameraComponent	
 	FirstPersonCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
 	FirstPersonCameraComponent->SetupAttachment(GetCapsuleComponent());
-	FirstPersonCameraComponent->SetRelativeLocation(FVector(-10.f, 0.f, 60.f)); // Position the camera
+	FirstPersonCameraComponent->SetRelativeLocation(FVector(-10.f, 0.f, 60.f));
 	FirstPersonCameraComponent->bUsePawnControlRotation = true;
 
-	// Create a mesh component that will be used when being viewed from a '1st person' view (when controlling this pawn)
 	Mesh1P = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("CharacterMesh1P"));
 	Mesh1P->SetOnlyOwnerSee(true);
 	Mesh1P->SetupAttachment(FirstPersonCameraComponent);
@@ -53,9 +53,16 @@ AAmaruShooterCharacter::AAmaruShooterCharacter()
 	Mesh1P->CastShadow = false;
 	Mesh1P->SetRelativeLocation(FVector(-30.f, 0.f, -150.f));
 
+	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
+	CameraBoom->SetupAttachment(GetCapsuleComponent());
+
+	ThirdPersonCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("ThirdPersonCamera"));
+	ThirdPersonCameraComponent->SetupAttachment(CameraBoom);
+	ThirdPersonCameraComponent->bUsePawnControlRotation = true;
+
 	Mesh3P = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("CharacterMesh3P"));
 	Mesh3P->SetOwnerNoSee(true);
-	Mesh3P->SetupAttachment(RootComponent);
+	Mesh3P->SetupAttachment(GetCapsuleComponent());
 	Mesh3P->bCastDynamicShadow = true;
 	Mesh3P->CastShadow = true;
 }
@@ -299,6 +306,8 @@ void AAmaruShooterCharacter::GiveAbilitiesFromDefinition()
 		GrantedAbilityHandles.Add(Handle);
 		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(GetPlayerState(), FGameplayTag::RequestGameplayTag(FName("Event.GrantedAbility")), FGameplayEventData());
 	}
+	FGameplayAbilitySpec Spec(EquipWeaponAbility, 1, -1, this);
+	FGameplayAbilitySpecHandle Handle = ASC->GiveAbility(Spec);
 }
 
 void AAmaruShooterCharacter::ApplyStartupEffectsFromDefinition()
