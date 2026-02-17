@@ -304,10 +304,14 @@ void AAmaruShooterCharacter::GiveAbilitiesFromDefinition()
 		FGameplayAbilitySpec Spec(Entry.AbilityClass, Entry.Level, Entry.InputID, this);
 		FGameplayAbilitySpecHandle Handle = ASC->GiveAbility(Spec);
 		GrantedAbilityHandles.Add(Handle);
-		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(GetPlayerState(), FGameplayTag::RequestGameplayTag(FName("Event.GrantedAbility")), FGameplayEventData());
 	}
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(GetPlayerState(), FGameplayTag::RequestGameplayTag(FName("Event.GrantedAbility")), FGameplayEventData());
 	FGameplayAbilitySpec Spec(EquipWeaponAbility, 1, -1, this);
 	FGameplayAbilitySpecHandle Handle = ASC->GiveAbility(Spec);
+	EquipWeaponHandle = Handle;
+	FGameplayEventData EventDataWeapon;
+	EventDataWeapon.TargetTags = FGameplayTagContainer{ InkaDefinition->WeaponTag };
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(GetPlayerState(), FGameplayTag::RequestGameplayTag(FName("Event.Weapon.Equip")), EventDataWeapon);
 }
 
 void AAmaruShooterCharacter::ApplyStartupEffectsFromDefinition()
@@ -358,6 +362,7 @@ void AAmaruShooterCharacter::ClearGrantedAbilities()
 		ASC->ClearAbility(Handle);
 	}
 	GrantedAbilityHandles.Reset();
+	ASC->ClearAbility(EquipWeaponHandle);
 }
 
 void AAmaruShooterCharacter::Move(const FInputActionValue& Value)

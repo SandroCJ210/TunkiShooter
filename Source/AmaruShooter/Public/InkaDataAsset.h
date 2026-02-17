@@ -22,9 +22,6 @@ struct FAmaruGrantedAbility
 	int32 InputID = -1;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TSoftObjectPtr<UTexture2D> Icon;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	FText DisplayName;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)

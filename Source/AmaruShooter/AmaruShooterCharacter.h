@@ -7,6 +7,7 @@
 #include "Logging/LogMacros.h"
 #include "AbilitySystemInterface.h"
 #include "Enums.h"
+#include "GameplayAbilitySpecHandle.h"
 #include "AmaruShooterCharacter.generated.h"
 
 class UAmaruGameplayAbility;
@@ -160,6 +161,8 @@ protected:
 	// APawn interface
 	virtual void SetupPlayerInputComponent(UInputComponent* InputComponent) override;
 	// End of APawn interface
+
+	FGameplayAbilitySpecHandle EquipWeaponHandle;
 
 public:
 	USkeletalMeshComponent* GetMesh1P() const { return Mesh1P; }
