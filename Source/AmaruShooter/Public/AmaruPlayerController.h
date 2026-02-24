@@ -7,9 +7,8 @@
 #include "Blueprint/UserWidget.h"
 #include "AmaruPlayerController.generated.h"
 
-/**
- * 
- */
+class UInkaDataAsset;
+
 UCLASS()
 class AMARUSHOOTER_API AAmaruPlayerController : public APlayerController
 {
@@ -48,6 +47,9 @@ protected:
 
 	UFUNCTION()
 	void CreateHUDInka();
+
+	UFUNCTION(Server, Reliable)
+    void Server_SetSelectedInka(const TSoftObjectPtr<UInkaDataAsset>& NewInka);
 
 public:
 	virtual void BeginPlay() override;

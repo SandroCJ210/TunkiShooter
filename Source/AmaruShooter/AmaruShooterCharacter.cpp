@@ -19,6 +19,24 @@
 #include "AmaruAbilitySystemComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 
+static FString NetToStr(const AActor* A)
+{
+	if (!A) return TEXT("null");
+	const UWorld* W = A->GetWorld();
+	const ENetMode NM = W ? W->GetNetMode() : NM_Standalone;
+	return FString::Printf(TEXT("NM=%d Auth=%d"),
+		(int)NM, A->HasAuthority());
+}
+
+static void ScreenLog(const UObject* WC, const FColor& C, const FString& Msg, float Time = 6.f)
+{
+	UE_LOG(LogTemplateCharacter, Warning, TEXT("%s"), *Msg);
+	if (GEngine && WC)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, Time, C, Msg);
+	}
+}
+
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 static void PrintInputDebug(const UObject* WorldContext, const FString& Msg)
 {
@@ -84,7 +102,15 @@ void AAmaruShooterCharacter::BeginPlay()
 		*GetClass()->GetPathName(),
 		*GetLevel()->GetOuter()->GetName());
 
-
+	ScreenLog(this, FColor::Cyan, FString::Printf(
+		TEXT("[BeginPlay] %s | %s | PC=%s | PS=%s | ASC=%s | Inka=%s"),
+		*GetName(),
+		*NetToStr(this),
+		*GetNameSafe(Cast<APlayerController>(Controller)),
+		*GetNameSafe(GetPlayerState()),
+		*GetNameSafe(CachedASC),
+		*GetNameSafe(InkaDefinition)
+	));
 }
 
 
@@ -101,8 +127,36 @@ UAmaruAttributeSet* AAmaruShooterCharacter::GetAmaruAttributeSet() const
 void AAmaruShooterCharacter::Server_EnableAbilitiesForMode()
 {
 	if (!HasAuthority()) return;
+
+	ScreenLog(this, FColor::Green, FString::Printf(
+		TEXT("[EnableAbilities] %s | PS=%s ASC=%s Inka=%s Handles=%d"),
+		*GetName(),
+		*GetNameSafe(CachedPS),
+		*GetNameSafe(CachedASC),
+		*GetNameSafe(InkaDefinition),
+		GrantedAbilityHandles.Num()
+	));
+
+	if (!CachedPS || !CachedASC)
+	{
+		ScreenLog(this, FColor::Yellow, TEXT("[EnableAbilities] CachedPS/ASC missing -> InitAbilityActorInfo()"));
+		InitAbilityActorInfo();
+	}
+
+	if (!InkaDefinition)
+	{
+		ScreenLog(this, FColor::Red, TEXT("[EnableAbilities] InkaDefinition is NULL -> cannot give abilities"));
+		return;
+	}
+
+	ClearGrantedAbilities();
 	ApplyStartupEffectsFromDefinition();
 	GiveAbilitiesFromDefinition();
+
+	ScreenLog(this, FColor::Green, FString::Printf(
+		TEXT("[EnableAbilities] DONE | Handles=%d"),
+		GrantedAbilityHandles.Num()
+	));
 }
 
 void AAmaruShooterCharacter::Server_DisableAbilitiesForMode()
@@ -115,28 +169,37 @@ void AAmaruShooterCharacter::Server_DisableAbilitiesForMode()
 void AAmaruShooterCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
-	UE_LOG(LogTemplateCharacter, Warning,
-		TEXT("PossessedBy %s | Controller=%s | NetMode=%d"),
-		*GetName(), *GetNameSafe(NewController),
-		GetWorld() ? (int)GetWorld()->GetNetMode() : -1);
-
+	ScreenLog(this, FColor::Green, FString::Printf(
+		TEXT("[PossessedBy] %s | NewController=%s | Local=%d | PC=%s"),
+		*GetName(),
+		*GetNameSafe(NewController),
+		IsLocallyControlled(),
+		*GetNameSafe(Cast<APlayerController>(NewController))
+	));
 	InitAbilityActorInfo();
 }
 
 void AAmaruShooterCharacter::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
+
+	ScreenLog(this, FColor::Orange, FString::Printf(
+		TEXT("[OnRep_PlayerState] %s | PS=%s"),
+		*GetName(),
+		*GetNameSafe(GetPlayerState())
+	));
 	InitAbilityActorInfo();
 }
 
 void AAmaruShooterCharacter::OnRep_Controller()
 {
 	Super::OnRep_Controller();
-	UE_LOG(LogTemplateCharacter, Warning,
-		TEXT("OnRep_Controller %s | Controller=%s | Local=%d | NetMode=%d"),
-		*GetName(), *GetNameSafe(Controller),
-		IsLocallyControlled(),
-		GetWorld() ? (int)GetWorld()->GetNetMode() : -1);
+	ScreenLog(this, FColor::Yellow, FString::Printf(
+		TEXT("[OnRep_Controller] %s | Controller=%s | Local=%d"),
+		*GetName(),
+		*GetNameSafe(Controller),
+		IsLocallyControlled()
+	));
 }
 
 
@@ -145,17 +208,48 @@ void AAmaruShooterCharacter::InitAbilityActorInfo()
 	CachedPS = GetPlayerState<AAmaruPlayerState>();
 	if (!CachedPS)
 	{
+		ScreenLog(this, FColor::Red, FString::Printf(
+			TEXT("[InitAbilityActorInfo] %s | NO PlayerState yet | Controller=%s"),
+			*GetName(), *GetNameSafe(Controller)
+		));
 		CachedASC = nullptr;
 		return;
 	}
 
+	const bool bInkaNull = CachedPS->SelectedInka.IsNull();
+	ScreenLog(this, FColor::Green, FString::Printf(
+		TEXT("[InitAbilityActorInfo] %s | PS=%s | SelectedInkaNull=%d"),
+		*GetName(),
+		*GetNameSafe(CachedPS),
+		bInkaNull
+	));
+
+	if (!bInkaNull)
+	{
+		InkaDefinition = CachedPS->SelectedInka.LoadSynchronous();
+	}
+	else
+	{
+		InkaDefinition = nullptr;
+	}
+
 	CachedASC = CachedPS->GetAmaruAbilitySystemComponent();
+
+	ScreenLog(this, FColor::Green, FString::Printf(
+		TEXT("[InitAbilityActorInfo] ASC=%s | InkaDef=%s | IsLocal=%d"),
+		*GetNameSafe(CachedASC),
+		*GetNameSafe(InkaDefinition),
+		IsLocallyControlled()
+	));
+
 	if (!CachedASC)
 	{
+		ScreenLog(this, FColor::Red, TEXT("[InitAbilityActorInfo] NO ASC"));
 		return;
 	}
 
 	CachedASC->InitAbilityActorInfo(CachedPS, this);
+	ScreenLog(this, FColor::Green, TEXT("[InitAbilityActorInfo] InitAbilityActorInfo DONE"));
 
 	if (UAmaruAttributeSet* AS = CachedPS->GetAttributeSet())
 	{
@@ -318,6 +412,8 @@ void AAmaruShooterCharacter::ApplyStartupEffectsFromDefinition()
 {
 	if (!HasAuthority()) return;
 	if (!InkaDefinition) return;
+
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("ApplyStartupEffectsFromDefinition called!"));
 
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
 	if (!ASC) return;

@@ -7,6 +7,8 @@
 #include "GameFramework/PlayerState.h"
 #include "AmaruPlayerState.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInkaChanged, int32, PlayerIndex);
+
 /**
  * 
  */
@@ -14,6 +16,7 @@
 class UAmaruAttributeSet;
 class UAmaruAbilitySystemComponent;
 class UAttributeSet;
+class UInkaDataAsset;
 
 UCLASS()
 class AMARUSHOOTER_API AAmaruPlayerState : public APlayerState, public IAbilitySystemInterface
@@ -22,6 +25,8 @@ class AMARUSHOOTER_API AAmaruPlayerState : public APlayerState, public IAbilityS
 
 public:
 	AAmaruPlayerState();
+
+	virtual void CopyProperties(APlayerState* PlayerState) override;
 
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
@@ -36,4 +41,19 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS")
 	TObjectPtr<UAmaruAttributeSet> AttributeSet;
+
+	UFUNCTION()
+	void OnRep_SelectedInka();
+
+public:
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	UPROPERTY(ReplicatedUsing = OnRep_SelectedInka, BlueprintReadOnly, Category = "Inka")
+	TSoftObjectPtr<UInkaDataAsset> SelectedInka;
+
+	UFUNCTION(BlueprintCallable, Category = "Inka")
+	void SetSelectedInka(const TSoftObjectPtr<UInkaDataAsset>& NewInka);
+
+	FOnInkaChanged OnInkaChanged;
 };

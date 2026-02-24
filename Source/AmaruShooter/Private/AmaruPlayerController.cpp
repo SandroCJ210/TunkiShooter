@@ -23,6 +23,14 @@ void AAmaruPlayerController::CreateHUDInka()
     }
 }
 
+void AAmaruPlayerController::Server_SetSelectedInka_Implementation(const TSoftObjectPtr<UInkaDataAsset>& NewInka)
+{
+	if (AAmaruPlayerState* APS = GetPlayerState<AAmaruPlayerState>())
+	{
+		APS->SetSelectedInka(NewInka);
+	}
+}
+
 void AAmaruPlayerController::BeginPlay()
 {
     Super::BeginPlay();

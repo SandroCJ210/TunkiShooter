@@ -31,7 +31,7 @@ struct FAmaruGrantedAbility
 	int32 Level = 1;
 };
 
-UCLASS()
+UCLASS(BlueprintType)
 class AMARUSHOOTER_API UInkaDataAsset : public UDataAsset
 {
 	GENERATED_BODY()
