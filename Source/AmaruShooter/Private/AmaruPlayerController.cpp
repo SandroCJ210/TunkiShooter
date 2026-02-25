@@ -31,6 +31,23 @@ void AAmaruPlayerController::Server_SetSelectedInka_Implementation(const TSoftOb
 	}
 }
 
+void AAmaruPlayerController::TryBindHUDToASC()
+{
+    if (!IsLocalPlayerController()) return;
+    if (!HUDInka) CreateHUDInka();
+    if (!HUDInka) return;
+
+    AAmaruPlayerState* APS = GetPlayerState<AAmaruPlayerState>();
+    if (!APS) return;
+
+    UAbilitySystemComponent* ASC = APS->GetAbilitySystemComponent();
+    if (!ASC) return;
+
+    struct FParam { UAbilitySystemComponent* ASC; };
+    FParam Params{ ASC };
+    CallBPFunction(HUDInka, FName("SetupAbilitySystemComponent"), &Params);
+}
+
 void AAmaruPlayerController::BeginPlay()
 {
     Super::BeginPlay();
@@ -48,7 +65,7 @@ void AAmaruPlayerController::BeginPlay()
     UE_LOG(LogTemp, Warning, TEXT("PC %s Local=%d DefaultMappingContext=%s"),
         *GetName(), IsLocalPlayerController(), *GetNameSafe(DefaultMappingContext));
     CreateHUDInka();
-
+    TryBindHUDToASC();
 }
 
 void AAmaruPlayerController::OnPossess(APawn* InPawn)
@@ -56,21 +73,12 @@ void AAmaruPlayerController::OnPossess(APawn* InPawn)
 	Super::OnPossess(InPawn);
     if (!IsLocalPlayerController()) return;
 	CreateHUDInka();
+	TryBindHUDToASC();
 }
 
 void AAmaruPlayerController::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
     CreateHUDInka();
-    if (!IsLocalPlayerController() || !HUDInka) return;
-
-    if (AAmaruPlayerState* APS = GetPlayerState<AAmaruPlayerState>())
-    {
-        if (UAbilitySystemComponent* ASC = APS->GetAbilitySystemComponent())
-        {
-            struct FParam { UAbilitySystemComponent* ASC; };
-			FParam Params{ ASC };
-            CallBPFunction(HUDInka, FName("SetupAbilitySystemComponent"), &Params);
-        }
-    }
+	TryBindHUDToASC();
 }

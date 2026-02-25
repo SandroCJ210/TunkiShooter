@@ -26,8 +26,6 @@ class AMARUSHOOTER_API AAmaruPlayerState : public APlayerState, public IAbilityS
 public:
 	AAmaruPlayerState();
 
-	virtual void CopyProperties(APlayerState* PlayerState) override;
-
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
 	UAmaruAbilitySystemComponent* GetAmaruAbilitySystemComponent() const;

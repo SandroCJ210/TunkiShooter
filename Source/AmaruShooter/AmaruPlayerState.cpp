@@ -21,16 +21,6 @@ AAmaruPlayerState::AAmaruPlayerState()
 	AttributeSet = CreateDefaultSubobject<UAmaruAttributeSet>(TEXT("AttributeSet"));
 }
 
-void AAmaruPlayerState::CopyProperties(APlayerState* PlayerState)
-{
-	Super::CopyProperties(PlayerState);
-
-	if (AAmaruPlayerState* PS = Cast<AAmaruPlayerState>(PlayerState))
-	{
-		PS->SelectedInka = SelectedInka;
-	}
-}
-
 UAbilitySystemComponent* AAmaruPlayerState::GetAbilitySystemComponent() const
 {
 	return AbilitySystemComponent;

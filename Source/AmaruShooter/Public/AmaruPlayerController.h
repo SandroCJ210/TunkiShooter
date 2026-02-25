@@ -51,6 +51,9 @@ protected:
 	UFUNCTION(Server, Reliable)
     void Server_SetSelectedInka(const TSoftObjectPtr<UInkaDataAsset>& NewInka);
 
+    UFUNCTION()
+    void TryBindHUDToASC();
+
 public:
 	virtual void BeginPlay() override;
 

@@ -19,6 +19,8 @@
 #include "AmaruAbilitySystemComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 
+DEFINE_LOG_CATEGORY(LogTemplateCharacter);
+
 static FString NetToStr(const AActor* A)
 {
 	if (!A) return TEXT("null");
@@ -37,19 +39,6 @@ static void ScreenLog(const UObject* WC, const FColor& C, const FString& Msg, fl
 	}
 }
 
-DEFINE_LOG_CATEGORY(LogTemplateCharacter);
-static void PrintInputDebug(const UObject* WorldContext, const FString& Msg)
-{
-	UE_LOG(LogTemplateCharacter, Log, TEXT("%s"), *Msg);
-
-	if (GEngine && WorldContext)
-	{
-		if (const UWorld* World = WorldContext->GetWorld())
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 1.5f, FColor::Cyan, Msg);
-		}
-	}
-}
 //////////////////////////////////////////////////////////////////////////
 // AAmaruShooterCharacter
 
@@ -465,9 +454,6 @@ void AAmaruShooterCharacter::Move(const FInputActionValue& Value)
 {
 	// input is a Vector2D
 	FVector2D MovementVector = Value.Get<FVector2D>();
-
-	UE_LOG(LogTemplateCharacter, Warning, TEXT("Move called %s | Local=%d Controller=%s Vec=(%f,%f)"),
-		*GetName(), IsLocallyControlled(), *GetNameSafe(Controller), MovementVector.X, MovementVector.Y);
 
 	if (Controller)
 	{
