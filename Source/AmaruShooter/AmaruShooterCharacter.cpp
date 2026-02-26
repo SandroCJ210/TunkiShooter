@@ -35,7 +35,7 @@ static void ScreenLog(const UObject* WC, const FColor& C, const FString& Msg, fl
 	UE_LOG(LogTemplateCharacter, Warning, TEXT("%s"), *Msg);
 	if (GEngine && WC)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, Time, C, Msg);
+		//GEngine->AddOnScreenDebugMessage(-1, Time, C, Msg);
 	}
 }
 

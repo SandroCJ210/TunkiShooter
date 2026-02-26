@@ -40,6 +40,13 @@ void AAmaruPlayerState::OnRep_SelectedInka()
 	OnInkaChanged.Broadcast(GetPlayerId());
 }
 
+void AAmaruPlayerState::ServerSetSelectedInka_Implementation(const TSoftObjectPtr<UInkaDataAsset>& NewInka)
+{
+	SetSelectedInka(NewInka);
+	UE_LOG(LogTemp, Warning, TEXT("ServerSetSelectedInka: PS=%s PlayerId=%d NewInka=%s"),
+		*GetName(), GetPlayerId(), *GetNameSafe(NewInka.Get()));
+}
+
 void AAmaruPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -50,9 +57,10 @@ void AAmaruPlayerState::SetSelectedInka(const TSoftObjectPtr<UInkaDataAsset>& Ne
 {
 	if (!HasAuthority())
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("SetSelectedInka called on client!"));
+		ServerSetSelectedInka(NewInka);
 		return;
 	}
+
 	if (SelectedInka != NewInka)
 	{
 		SelectedInka = NewInka;

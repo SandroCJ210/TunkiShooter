@@ -26,9 +26,31 @@ void UWeaponManagerComponent::BeginPlay()
 	
 }
 
+static FString NetModeToString(const UWorld* World)
+{
+	if (!World) return TEXT("NoWorld");
+
+	switch (World->GetNetMode())
+	{
+	case NM_Standalone:      return TEXT("Standalone");
+	case NM_ListenServer:    return TEXT("ListenServer");
+	case NM_DedicatedServer: return TEXT("DedicatedServer");
+	case NM_Client:          return TEXT("Client");
+	default:                 return TEXT("Unknown");
+	}
+}
 
 void UWeaponManagerComponent::EquipWeapon(TSubclassOf<AWeaponBase> WeaponClass)
 {
+	if (!OwnerChar)
+	{
+		OwnerChar = Cast<AAmaruShooterCharacter>(GetOwner());
+		if (!OwnerChar)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("WeaponManagerComponent: Owner is not AAmaruShooterCharacter!"));
+			return;
+		}
+	}
 	if (OwnerChar)
 	{
 		if (CurrentWeapon)

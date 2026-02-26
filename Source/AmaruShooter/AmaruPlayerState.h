@@ -43,6 +43,9 @@ protected:
 	UFUNCTION()
 	void OnRep_SelectedInka();
 
+	UFUNCTION(Server, Reliable)
+	void ServerSetSelectedInka(const TSoftObjectPtr<UInkaDataAsset>& NewInka);
+	
 public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
