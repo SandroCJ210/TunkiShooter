@@ -37,6 +37,9 @@ class AMARUSHOOTER_API UInkaDataAsset : public UDataAsset
 	GENERATED_BODY()
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS")
+	FName InkaName;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS")
 	TArray<FAmaruGrantedAbility> Abilities;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS")
