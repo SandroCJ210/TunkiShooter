@@ -50,7 +50,7 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	UPROPERTY(ReplicatedUsing = OnRep_SelectedInka, BlueprintReadOnly, Category = "Inka")
+	UPROPERTY(EditAnywhere, ReplicatedUsing = OnRep_SelectedInka, BlueprintReadOnly, Category = "Inka")
 	TSoftObjectPtr<UInkaDataAsset> SelectedInka;
 
 	UFUNCTION(BlueprintCallable, Category = "Inka")
