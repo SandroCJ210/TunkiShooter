@@ -7,10 +7,11 @@ class UGameplayAbility;
 UENUM(BlueprintType)
 enum class EAmaruAbilityInputID : uint8
 {
-	None      UMETA(DisplayName = "None"),
-	Ability1  UMETA(DisplayName = "Ability1"),
-	Ability2  UMETA(DisplayName = "Ability2"),
-	Ultimate  UMETA(DisplayName = "Ultimate"),
+	None = 0      UMETA(DisplayName = "None"),
+	Ability1 = 1  UMETA(DisplayName = "Ability1"),
+	Ability2 = 2  UMETA(DisplayName = "Ability2"),
+	Ultimate = 3  UMETA(DisplayName = "Ultimate"),
+	PrimaryFire = 4 UMETA(DisplayName = "PrimaryFire"),
 };
 
 USTRUCT(BlueprintType)

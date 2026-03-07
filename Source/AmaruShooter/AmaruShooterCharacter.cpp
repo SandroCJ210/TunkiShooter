@@ -488,10 +488,14 @@ void AAmaruShooterCharacter::OnJumpCompleted(const FInputActionValue& Value)
 
 void AAmaruShooterCharacter::Shoot(const FInputActionValue& Value)
 {
+	if (!CachedASC) return;
+	CachedASC->HandleAbilityLocalInputPressed(EAmaruAbilityInputID::PrimaryFire);
 }
 
 void AAmaruShooterCharacter::StopShooting(const FInputActionValue& Value)
 {
+	if (!CachedASC) return;
+	CachedASC->HandleAbilityLocalInputReleased(EAmaruAbilityInputID::PrimaryFire);
 }
 
 void AAmaruShooterCharacter::Ability1Pressed(const FInputActionValue& Value)
