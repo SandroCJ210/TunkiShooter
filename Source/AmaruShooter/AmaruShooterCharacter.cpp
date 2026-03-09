@@ -191,10 +191,55 @@ void AAmaruShooterCharacter::OnRep_Controller()
 	));
 }
 
+void AAmaruShooterCharacter::RefreshInkaDefinition(int32 PlayerIndex)
+{
+	if (!CachedPS) return;
+
+	if (CachedPS->GetPlayerId() != PlayerIndex)
+	{
+		return;
+	}
+
+	const bool bInkaNull = CachedPS->SelectedInka.IsNull();
+	const FString InkaPath = CachedPS->SelectedInka.ToSoftObjectPath().ToString();
+	
+	ScreenLog(this, FColor::Cyan, FString::Printf(
+		TEXT("[RefreshInka] %s | PlayerId=%d | Path=%s"),
+		*GetName(),
+		PlayerIndex,
+		*InkaPath
+	));
+
+	if (!bInkaNull)
+	{
+		InkaDefinition = CachedPS->SelectedInka.LoadSynchronous();
+	}
+	else
+	{
+		InkaDefinition = nullptr;
+	}
+
+	if (HasAuthority())
+	{
+		Server_EnableAbilitiesForMode();
+	}
+
+	if (IsLocallyControlled())
+	{
+		OnAbilityLoadoutChanged.Broadcast();
+	}
+}
 
 void AAmaruShooterCharacter::InitAbilityActorInfo()
 {
+	AAmaruPlayerState* OldPS = CachedPS;
 	CachedPS = GetPlayerState<AAmaruPlayerState>();
+	
+	if (CachedPS && CachedPS != OldPS)
+	{
+		CachedPS->OnInkaChanged.AddUniqueDynamic(this, &AAmaruShooterCharacter::RefreshInkaDefinition);
+	}
+
 	if (!CachedPS)
 	{
 		ScreenLog(this, FColor::Red, FString::Printf(

@@ -95,6 +95,9 @@ protected:
 
 	virtual void OnRep_Controller() override;
 
+	UFUNCTION(BlueprintCallable, Category = "Inka")
+	void RefreshInkaDefinition(int32 PlayerIndex);
+
 	void InitAbilityActorInfo();
 
 public:

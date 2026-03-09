@@ -49,6 +49,7 @@ protected:
 public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void CopyProperties(APlayerState* PlayerState) override;
 
 	UPROPERTY(EditAnywhere, ReplicatedUsing = OnRep_SelectedInka, BlueprintReadOnly, Category = "Inka")
 	TSoftObjectPtr<UInkaDataAsset> SelectedInka;
