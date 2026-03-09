@@ -33,24 +33,38 @@ UAmaruAbilitySystemComponent* AAmaruPlayerState::GetAmaruAbilitySystemComponent(
 
 void AAmaruPlayerState::OnRep_SelectedInka()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("OnRep_SelectedInka called!"));
-	UE_LOG(LogTemp, Warning, TEXT("[%s] SelectedInka = %s"),
-		HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT"),
-		*GetNameSafe(SelectedInka.Get()));
+	const FString InkaPath = SelectedInka.ToSoftObjectPath().ToString();
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, FString::Printf(TEXT("[%s] PS=%s PlayerId=%d SelectedInka = %s"), 
+		HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT"), 
+		*GetName(), GetPlayerId(), *InkaPath));
+
 	OnInkaChanged.Broadcast(GetPlayerId());
 }
 
 void AAmaruPlayerState::ServerSetSelectedInka_Implementation(const TSoftObjectPtr<UInkaDataAsset>& NewInka)
 {
+	const FString InkaPath = NewInka.ToSoftObjectPath().ToString();
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Cyan, FString::Printf(TEXT("ServerSetSelectedInka: PS=%s PlayerId=%d NewInka=%s"),
+		*GetName(), GetPlayerId(), *InkaPath));
+
 	SetSelectedInka(NewInka);
-	UE_LOG(LogTemp, Warning, TEXT("ServerSetSelectedInka: PS=%s PlayerId=%d NewInka=%s"),
-		*GetName(), GetPlayerId(), *GetNameSafe(NewInka.Get()));
 }
 
 void AAmaruPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(AAmaruPlayerState, SelectedInka);
+}
+
+void AAmaruPlayerState::CopyProperties(APlayerState* PlayerState)
+{
+	Super::CopyProperties(PlayerState);
+
+	if (AAmaruPlayerState* AmaruPlayerState = Cast<AAmaruPlayerState>(PlayerState))
+	{
+		AmaruPlayerState->SelectedInka = SelectedInka;
+		GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Cyan, FString::Printf(TEXT("CopyProperties: Persisting Inka %s to new PlayerState"), *SelectedInka.ToSoftObjectPath().ToString()));
+	}
 }
 
 void AAmaruPlayerState::SetSelectedInka(const TSoftObjectPtr<UInkaDataAsset>& NewInka)
@@ -61,9 +75,6 @@ void AAmaruPlayerState::SetSelectedInka(const TSoftObjectPtr<UInkaDataAsset>& Ne
 		return;
 	}
 
-	if (SelectedInka != NewInka)
-	{
-		SelectedInka = NewInka;
-		OnRep_SelectedInka();
-	}
+	SelectedInka = NewInka;
+	OnRep_SelectedInka();
 }
