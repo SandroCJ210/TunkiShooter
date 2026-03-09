@@ -12,6 +12,7 @@ enum class EAmaruAbilityInputID : uint8
 	Ability2 = 2  UMETA(DisplayName = "Ability2"),
 	Ultimate = 3  UMETA(DisplayName = "Ultimate"),
 	PrimaryFire = 4 UMETA(DisplayName = "PrimaryFire"),
+	Reload = 5 UMETA(DisplayName = "Reload"),
 };
 
 USTRUCT(BlueprintType)

@@ -252,6 +252,7 @@ void AAmaruShooterCharacter::InitAbilityActorInfo()
 		MoveSpeedChangedHandle.Reset();
 		ChargeAbility1ChangedHandle.Reset();
 		ChargeAbility2ChangedHandle.Reset();
+		AmmoChangedHandle.Reset();
 
 		BoundASC = CachedASC;
 		BoundAS  = AS;
@@ -331,6 +332,24 @@ void AAmaruShooterCharacter::InitAbilityActorInfo()
 				}
 			});
 	}
+
+	if (!AmmoChangedHandle.IsValid())
+	{
+		AmmoChangedHandle =
+			CachedASC->GetGameplayAttributeValueChangeDelegate(AS->GetAmmoAttribute())
+			.AddLambda([this](const FOnAttributeChangeData& Data)
+			{
+				if (!IsLocallyControlled()) return;
+				if (Data.NewValue > 0.f) return;
+				if (!CachedASC) return;
+
+				const FGameplayTag ReloadingTag = FGameplayTag::RequestGameplayTag(FName("Status.Reloading"));
+				if (CachedASC->HasMatchingGameplayTag(ReloadingTag)) return;
+
+				CachedASC->HandleAbilityLocalInputPressed(EAmaruAbilityInputID::Reload);
+				CachedASC->HandleAbilityLocalInputReleased(EAmaruAbilityInputID::Reload);
+			});
+	}
 	}
 	if (IsLocallyControlled())
 	{
@@ -350,6 +369,11 @@ void AAmaruShooterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerIn
 
 		EnhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Started, this, &AAmaruShooterCharacter::Shoot);
 		EnhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Completed, this, &AAmaruShooterCharacter::StopShooting);
+
+		if (ReloadAction)
+		{
+			EnhancedInputComponent->BindAction(ReloadAction, ETriggerEvent::Started, this, &AAmaruShooterCharacter::ReloadPressed);
+		}
 
 		EnhancedInputComponent->BindAction(Ability1Action, ETriggerEvent::Started, this, &AAmaruShooterCharacter::Ability1Pressed);
 		EnhancedInputComponent->BindAction(Ability1Action, ETriggerEvent::Completed, this, &AAmaruShooterCharacter::Ability1Released);
@@ -488,14 +512,45 @@ void AAmaruShooterCharacter::OnJumpCompleted(const FInputActionValue& Value)
 
 void AAmaruShooterCharacter::Shoot(const FInputActionValue& Value)
 {
+	if (!CachedASC)
+	{
+		InitAbilityActorInfo();
+	}
 	if (!CachedASC) return;
+
+	if (const UAmaruAttributeSet* AS = GetAmaruAttributeSet())
+	{
+		if (AS->GetAmmo() <= 0.f)
+		{
+			CachedASC->HandleAbilityLocalInputPressed(EAmaruAbilityInputID::Reload);
+			CachedASC->HandleAbilityLocalInputReleased(EAmaruAbilityInputID::Reload);
+			return;
+		}
+	}
+
 	CachedASC->HandleAbilityLocalInputPressed(EAmaruAbilityInputID::PrimaryFire);
 }
 
 void AAmaruShooterCharacter::StopShooting(const FInputActionValue& Value)
 {
+	if (!CachedASC)
+	{
+		InitAbilityActorInfo();
+	}
 	if (!CachedASC) return;
 	CachedASC->HandleAbilityLocalInputReleased(EAmaruAbilityInputID::PrimaryFire);
+}
+
+void AAmaruShooterCharacter::ReloadPressed(const FInputActionValue& Value)
+{
+	if (!CachedASC)
+	{
+		InitAbilityActorInfo();
+	}
+	if (!CachedASC) return;
+
+	CachedASC->HandleAbilityLocalInputPressed(EAmaruAbilityInputID::Reload);
+	CachedASC->HandleAbilityLocalInputReleased(EAmaruAbilityInputID::Reload);
 }
 
 void AAmaruShooterCharacter::Ability1Pressed(const FInputActionValue& Value)

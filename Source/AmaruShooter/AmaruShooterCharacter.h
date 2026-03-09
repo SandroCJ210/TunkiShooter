@@ -66,6 +66,9 @@ class AAmaruShooterCharacter : public ACharacter, public IAbilitySystemInterface
 	UInputAction* ShootAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* ReloadAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* Ability1Action;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
@@ -139,6 +142,8 @@ protected:
 	void Shoot(const FInputActionValue& Value);
 	void StopShooting(const FInputActionValue& Value);
 
+	void ReloadPressed(const FInputActionValue& Value);
+
 	void Ability1Pressed(const FInputActionValue& Value);
 	void Ability1Released(const FInputActionValue& Value);
 	void Ability1Canceled(const FInputActionValue& Value);
@@ -155,6 +160,7 @@ protected:
 	FDelegateHandle MoveSpeedChangedHandle;
 	FDelegateHandle ChargeAbility1ChangedHandle;
 	FDelegateHandle ChargeAbility2ChangedHandle;
+	FDelegateHandle AmmoChangedHandle;
 	TWeakObjectPtr<UAmaruAttributeSet> BoundAS;
 	TWeakObjectPtr<UAbilitySystemComponent> BoundASC;
 

@@ -27,6 +27,9 @@ void UAmaruAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 
 	DOREPLIFETIME_CONDITION_NOTIFY(UAmaruAttributeSet, ChargeAbility2, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UAmaruAttributeSet, MaxChargeAbility2, COND_None, REPNOTIFY_Always);
+
+	DOREPLIFETIME_CONDITION_NOTIFY(UAmaruAttributeSet, Ammo, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UAmaruAttributeSet, MaxAmmo, COND_None, REPNOTIFY_Always);
 }
 
 void UAmaruAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue)
@@ -55,6 +58,15 @@ void UAmaruAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute,
 	{
 		NewValue = FMath::Clamp(NewValue, 0.f, GetMaxChargeAbility2());
 	}
+	else if (Attribute == GetAmmoAttribute())
+	{
+		NewValue = FMath::Clamp(NewValue, 0.f, GetMaxAmmo());
+	}
+	else if (Attribute == GetMaxAmmoAttribute())
+	{
+		NewValue = FMath::Max(NewValue, 0.f);
+		SetAmmo(FMath::Clamp(GetAmmo(), 0.f, NewValue));
+	}
 }
 
 void UAmaruAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data)
@@ -78,6 +90,15 @@ void UAmaruAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallb
 	else if (Attr == GetDamageMultiplierAttribute())
 	{
 		SetDamageMultiplier(FMath::Max(GetDamageMultiplier(), 0.f));
+	}
+	else if (Attr == GetAmmoAttribute())
+	{
+		SetAmmo(FMath::Clamp(GetAmmo(), 0.f, GetMaxAmmo()));
+	}
+	else if (Attr == GetMaxAmmoAttribute())
+	{
+		SetMaxAmmo(FMath::Max(GetMaxAmmo(), 0.f));
+		SetAmmo(FMath::Clamp(GetAmmo(), 0.f, GetMaxAmmo()));
 	}
 }
 
@@ -129,4 +150,14 @@ void UAmaruAttributeSet::OnRep_ChargeAbility2(const FGameplayAttributeData& OldV
 void UAmaruAttributeSet::OnRep_MaxChargeAbility2(const FGameplayAttributeData& OldValue)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UAmaruAttributeSet, MaxChargeAbility2, OldValue);
+}
+
+void UAmaruAttributeSet::OnRep_Ammo(const FGameplayAttributeData& OldValue)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UAmaruAttributeSet, Ammo, OldValue);
+}
+
+void UAmaruAttributeSet::OnRep_MaxAmmo(const FGameplayAttributeData& OldValue)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UAmaruAttributeSet, MaxAmmo, OldValue);
 }

@@ -60,6 +60,14 @@ public:
 	FGameplayAttributeData MaxChargeAbility2;
 	ATTRIBUTE_ACCESSORS(UAmaruAttributeSet, MaxChargeAbility2)
 
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes|Weapon", ReplicatedUsing = OnRep_Ammo)
+	FGameplayAttributeData Ammo;
+	ATTRIBUTE_ACCESSORS(UAmaruAttributeSet, Ammo)
+
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes|Weapon", ReplicatedUsing = OnRep_MaxAmmo)
+	FGameplayAttributeData MaxAmmo;
+	ATTRIBUTE_ACCESSORS(UAmaruAttributeSet, MaxAmmo)
+
 	virtual void PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue) override;
 	virtual void PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data) override;
 
@@ -94,6 +102,12 @@ protected:
 
 	UFUNCTION()
 	void OnRep_MaxChargeAbility2(const FGameplayAttributeData& OldValue);
+
+	UFUNCTION()
+	void OnRep_Ammo(const FGameplayAttributeData& OldValue);
+
+	UFUNCTION()
+	void OnRep_MaxAmmo(const FGameplayAttributeData& OldValue);
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 };
