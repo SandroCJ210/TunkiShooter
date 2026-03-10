@@ -17,6 +17,9 @@ class AMARUSHOOTER_API AWeaponBase : public AActor
 public:	
 	// Sets default values for this actor's properties
 	AWeaponBase();
+	
+	UPROPERTY(EditAnywhere)
+	UStaticMeshComponent* Mesh;
 
 protected:
 	// Called when the game starts or when spawned

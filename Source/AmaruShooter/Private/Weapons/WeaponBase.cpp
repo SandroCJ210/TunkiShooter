@@ -10,6 +10,8 @@ AWeaponBase::AWeaponBase()
 	PrimaryActorTick.bCanEverTick = true;
 	bReplicates = true;
 
+	Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WeaponMesh"));
+	RootComponent = Mesh;
 }
 
 // Called when the game starts or when spawned

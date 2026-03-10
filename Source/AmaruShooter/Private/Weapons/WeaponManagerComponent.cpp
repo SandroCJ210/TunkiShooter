@@ -2,6 +2,9 @@
 
 
 #include "Weapons/WeaponManagerComponent.h"
+
+#include "AmaruAbilitySystemComponent.h"
+#include "GameplayAbilitySpec.h"
 #include "Weapons/WeaponBase.h"
 #include "../AmaruShooterCharacter.h"
 
@@ -74,6 +77,7 @@ void UWeaponManagerComponent::EquipWeapon(TSubclassOf<AWeaponBase> WeaponClass)
 				OwnerChar->GetMesh3P()->SetAnimInstanceClass(CurrentWeapon->WeaponConfig.AnimationClass);
 			}
 		}
+		GrantAbility();
 	}
 }
 
@@ -87,6 +91,27 @@ void UWeaponManagerComponent::UnequipWeapon()
 	if (OwnerChar)
 	{
 		OwnerChar->GetMesh3P()->SetAnimInstanceClass(DefaultAnimClass);
+	}
+}
+
+FVector UWeaponManagerComponent::GetSpawnBulletSocket() const
+{
+	if (CurrentWeapon)
+	{
+		return CurrentWeapon->Mesh->GetSocketLocation(TEXT("Muzzle"));
+	}
+	return FVector::ZeroVector;
+}
+
+void UWeaponManagerComponent::GrantAbility()
+{
+	const auto ASC = OwnerChar->GetAmaruAbilitySystemComponent();
+	for (const auto& AbilityClass : CurrentWeapon->WeaponConfig.AbilitiesToGrant)
+	{
+		if (ASC && AbilityClass)
+		{
+			ASC->GiveAbility(FGameplayAbilitySpec(AbilityClass, 1, static_cast<int32>(EAmaruAbilityInputID::PrimaryFire)));
+		}
 	}
 }
 

@@ -31,15 +31,20 @@ protected:
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<UAnimInstance> DefaultAnimClass;
 
+	UFUNCTION()
+	void GrantAbility();
+
 public:	
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-
 
 	UFUNCTION(BlueprintCallable)
 	void EquipWeapon(TSubclassOf<AWeaponBase> WeaponClass);
 
 	UFUNCTION(BlueprintCallable)
 	void UnequipWeapon();
+
+	UFUNCTION(BlueprintCallable)
+	FVector GetSpawnBulletSocket() const;
 		
 };
