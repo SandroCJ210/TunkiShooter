@@ -8,6 +8,7 @@
 
 class AAmaruShooterCharacter;
 class AWeaponBase;
+struct FGameplayAbilitySpecHandle;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class AMARUSHOOTER_API UWeaponManagerComponent : public UActorComponent
@@ -21,23 +22,30 @@ public:
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	UPROPERTY()
+	UPROPERTY(ReplicatedUsing = OnRep_CurrentWeapon)
 	AWeaponBase* CurrentWeapon;
+
+	UFUNCTION()
+	void OnRep_CurrentWeapon();
 
 	UPROPERTY()
 	AAmaruShooterCharacter* OwnerChar;
+
+	UPROPERTY(Transient)
+	TArray<FGameplayAbilitySpecHandle> GrantedWeaponAbilityHandles;
 
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<UAnimInstance> DefaultAnimClass;
 
 	UFUNCTION()
-	void GrantAbility();
+	void GrantAbilities();
+	void ClearGrantedAbilities();
+	bool CanModifyWeaponState() const;
 
-public:	
-	// Called every frame
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-
+public:
 	UFUNCTION(BlueprintCallable)
 	void EquipWeapon(TSubclassOf<AWeaponBase> WeaponClass);
 

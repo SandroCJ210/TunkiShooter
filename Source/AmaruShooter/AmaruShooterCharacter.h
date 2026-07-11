@@ -8,6 +8,7 @@
 #include "AbilitySystemInterface.h"
 #include "Enums.h"
 #include "GameplayAbilitySpecHandle.h"
+#include "GameplayTagContainer.h"
 #include "AmaruShooterCharacter.generated.h"
 
 class UAmaruGameplayAbility;
@@ -81,19 +82,26 @@ public:
 	AAmaruShooterCharacter();
 
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
 	void Server_EnableAbilitiesForMode();
 	void Server_DisableAbilitiesForMode();
 
+	// Muerte cosmética en todas las máquinas (colisión/movimiento off).
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_OnDeath();
+
+	// Hook BP para material translúcido/efectos al entrar o salir de stealth (solo dueño).
+	UFUNCTION(BlueprintImplementableEvent, Category = "Stealth")
+	void OnStealthChanged(bool bStealthed);
+
 protected:
 
 	virtual void PossessedBy(AController* NewController) override;
 
 	virtual void OnRep_PlayerState() override;
-
-	virtual void OnRep_Controller() override;
 
 	UFUNCTION(BlueprintCallable, Category = "Inka")
 	void RefreshInkaDefinition(int32 PlayerIndex);
@@ -129,11 +137,10 @@ protected:
 	TSubclassOf<UAmaruGameplayAbility> EquipWeaponAbility;
 
 	void ApplyStartupEffectsFromDefinition();
+	void RemoveStartupEffects();
 	void GiveAbilitiesFromDefinition();
 	void ClearGrantedAbilities();
-
-	UPROPERTY(Transient)
-	bool bStartupApplied = false;
+	void UnbindAttributeDelegates();
 
 	void Move(const FInputActionValue& Value);
 
@@ -164,8 +171,11 @@ protected:
 	FDelegateHandle ChargeAbility1ChangedHandle;
 	FDelegateHandle ChargeAbility2ChangedHandle;
 	FDelegateHandle AmmoChangedHandle;
+	FDelegateHandle StealthTagChangedHandle;
 	TWeakObjectPtr<UAmaruAttributeSet> BoundAS;
 	TWeakObjectPtr<UAbilitySystemComponent> BoundASC;
+
+	void OnStealthTagChanged(const FGameplayTag Tag, int32 NewCount);
 
 	// APawn interface
 	virtual void SetupPlayerInputComponent(UInputComponent* InputComponent) override;

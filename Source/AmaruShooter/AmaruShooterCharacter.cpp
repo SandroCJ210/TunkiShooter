@@ -17,27 +17,11 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AmaruAbilitySystemComponent.h"
+#include "AmaruGameplayTags.h"
+#include "GameModes/AmaruGameMode.h"
 #include "GameFramework/SpringArmComponent.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
-
-static FString NetToStr(const AActor* A)
-{
-	if (!A) return TEXT("null");
-	const UWorld* W = A->GetWorld();
-	const ENetMode NM = W ? W->GetNetMode() : NM_Standalone;
-	return FString::Printf(TEXT("NM=%d Auth=%d"),
-		(int)NM, A->HasAuthority());
-}
-
-static void ScreenLog(const UObject* WC, const FColor& C, const FString& Msg, float Time = 6.f)
-{
-	UE_LOG(LogTemplateCharacter, Warning, TEXT("%s"), *Msg);
-	if (GEngine && WC)
-	{
-		//GEngine->AddOnScreenDebugMessage(-1, Time, C, Msg);
-	}
-}
 
 //////////////////////////////////////////////////////////////////////////
 // AAmaruShooterCharacter
@@ -77,31 +61,66 @@ AAmaruShooterCharacter::AAmaruShooterCharacter()
 void AAmaruShooterCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-
-	const UWorld* W = GetWorld();
-	const ENetMode NM = W ? W->GetNetMode() : NM_Standalone;
-
-	UE_LOG(LogTemplateCharacter, Warning,
-		TEXT("BeginPlay %s | NetMode=%d HasAuthority=%d IsLocallyControlled=%d Controller=%s"),
-		*GetName(), (int)NM, HasAuthority(), IsLocallyControlled(), *GetNameSafe(Controller));
-	UE_LOG(LogTemplateCharacter, Warning, TEXT("BeginPlay | %s | Owner=%s Instigator=%s"),
-		*GetName(), *GetNameSafe(GetOwner()), *GetNameSafe(GetInstigator()));
-	UE_LOG(LogTemplateCharacter, Warning, TEXT("BeginPlay | %s | Class=%s | Level=%s"),
-		*GetName(),
-		*GetClass()->GetPathName(),
-		*GetLevel()->GetOuter()->GetName());
-
-	ScreenLog(this, FColor::Cyan, FString::Printf(
-		TEXT("[BeginPlay] %s | %s | PC=%s | PS=%s | ASC=%s | Inka=%s"),
-		*GetName(),
-		*NetToStr(this),
-		*GetNameSafe(Cast<APlayerController>(Controller)),
-		*GetNameSafe(GetPlayerState()),
-		*GetNameSafe(CachedASC),
-		*GetNameSafe(InkaDefinition)
-	));
 }
 
+
+void AAmaruShooterCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	// El ASC vive en el PlayerState y sobrevive al personaje (respawn):
+	// si no desuscribimos aquí, las lambdas quedan apuntando a un 'this' destruido,
+	// y si no limpiamos las habilidades, cada respawn las duplicaría en el ASC.
+	Server_DisableAbilitiesForMode();
+	UnbindAttributeDelegates();
+	Super::EndPlay(EndPlayReason);
+}
+
+void AAmaruShooterCharacter::UnbindAttributeDelegates()
+{
+	UAbilitySystemComponent* ASC = BoundASC.Get();
+	UAmaruAttributeSet* AS = BoundAS.Get();
+	if (ASC && AS)
+	{
+		ASC->GetGameplayAttributeValueChangeDelegate(AS->GetMoveSpeedAttribute()).Remove(MoveSpeedChangedHandle);
+		ASC->GetGameplayAttributeValueChangeDelegate(AS->GetChargeAbility1Attribute()).Remove(ChargeAbility1ChangedHandle);
+		ASC->GetGameplayAttributeValueChangeDelegate(AS->GetChargeAbility2Attribute()).Remove(ChargeAbility2ChangedHandle);
+		ASC->GetGameplayAttributeValueChangeDelegate(AS->GetAmmoAttribute()).Remove(AmmoChangedHandle);
+	}
+	if (ASC)
+	{
+		ASC->RegisterGameplayTagEvent(AmaruTags::State_Stealth, EGameplayTagEventType::NewOrRemoved).Remove(StealthTagChangedHandle);
+	}
+	MoveSpeedChangedHandle.Reset();
+	ChargeAbility1ChangedHandle.Reset();
+	ChargeAbility2ChangedHandle.Reset();
+	AmmoChangedHandle.Reset();
+	StealthTagChangedHandle.Reset();
+	BoundASC = nullptr;
+	BoundAS = nullptr;
+}
+
+void AAmaruShooterCharacter::OnStealthTagChanged(const FGameplayTag Tag, int32 NewCount)
+{
+	const bool bStealthed = NewCount > 0;
+	if (IsLocallyControlled())
+	{
+		OnStealthChanged(bStealthed);
+	}
+	else if (Mesh3P)
+	{
+		Mesh3P->SetVisibility(!bStealthed, true);
+	}
+}
+
+void AAmaruShooterCharacter::Multicast_OnDeath_Implementation()
+{
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetCharacterMovement()->DisableMovement();
+	if (Mesh3P)
+	{
+		Mesh3P->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
+		Mesh3P->SetSimulatePhysics(true);
+	}
+}
 
 UAbilitySystemComponent* AAmaruShooterCharacter::GetAbilitySystemComponent() const
 {
@@ -117,78 +136,38 @@ void AAmaruShooterCharacter::Server_EnableAbilitiesForMode()
 {
 	if (!HasAuthority()) return;
 
-	ScreenLog(this, FColor::Green, FString::Printf(
-		TEXT("[EnableAbilities] %s | PS=%s ASC=%s Inka=%s Handles=%d"),
-		*GetName(),
-		*GetNameSafe(CachedPS),
-		*GetNameSafe(CachedASC),
-		*GetNameSafe(InkaDefinition),
-		GrantedAbilityHandles.Num()
-	));
-
 	if (!CachedPS || !CachedASC)
 	{
-		ScreenLog(this, FColor::Yellow, TEXT("[EnableAbilities] CachedPS/ASC missing -> InitAbilityActorInfo()"));
 		InitAbilityActorInfo();
 	}
 
 	if (!InkaDefinition)
 	{
-		ScreenLog(this, FColor::Red, TEXT("[EnableAbilities] InkaDefinition is NULL -> cannot give abilities"));
 		return;
 	}
 
 	ClearGrantedAbilities();
 	ApplyStartupEffectsFromDefinition();
 	GiveAbilitiesFromDefinition();
-
-	ScreenLog(this, FColor::Green, FString::Printf(
-		TEXT("[EnableAbilities] DONE | Handles=%d"),
-		GrantedAbilityHandles.Num()
-	));
 }
 
 void AAmaruShooterCharacter::Server_DisableAbilitiesForMode()
 {
 	if (!HasAuthority()) return;
-	ApplyStartupEffectsFromDefinition();
+	RemoveStartupEffects();
 	ClearGrantedAbilities();
 }
 
 void AAmaruShooterCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
-	ScreenLog(this, FColor::Green, FString::Printf(
-		TEXT("[PossessedBy] %s | NewController=%s | Local=%d | PC=%s"),
-		*GetName(),
-		*GetNameSafe(NewController),
-		IsLocallyControlled(),
-		*GetNameSafe(Cast<APlayerController>(NewController))
-	));
 	InitAbilityActorInfo();
 }
 
 void AAmaruShooterCharacter::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
-
-	ScreenLog(this, FColor::Orange, FString::Printf(
-		TEXT("[OnRep_PlayerState] %s | PS=%s"),
-		*GetName(),
-		*GetNameSafe(GetPlayerState())
-	));
 	InitAbilityActorInfo();
-}
-
-void AAmaruShooterCharacter::OnRep_Controller()
-{
-	Super::OnRep_Controller();
-	ScreenLog(this, FColor::Yellow, FString::Printf(
-		TEXT("[OnRep_Controller] %s | Controller=%s | Local=%d"),
-		*GetName(),
-		*GetNameSafe(Controller),
-		IsLocallyControlled()
-	));
 }
 
 void AAmaruShooterCharacter::RefreshInkaDefinition(int32 PlayerIndex)
@@ -201,14 +180,6 @@ void AAmaruShooterCharacter::RefreshInkaDefinition(int32 PlayerIndex)
 	}
 
 	const bool bInkaNull = CachedPS->SelectedInka.IsNull();
-	const FString InkaPath = CachedPS->SelectedInka.ToSoftObjectPath().ToString();
-	
-	ScreenLog(this, FColor::Cyan, FString::Printf(
-		TEXT("[RefreshInka] %s | PlayerId=%d | Path=%s"),
-		*GetName(),
-		PlayerIndex,
-		*InkaPath
-	));
 
 	if (!bInkaNull)
 	{
@@ -242,21 +213,11 @@ void AAmaruShooterCharacter::InitAbilityActorInfo()
 
 	if (!CachedPS)
 	{
-		ScreenLog(this, FColor::Red, FString::Printf(
-			TEXT("[InitAbilityActorInfo] %s | NO PlayerState yet | Controller=%s"),
-			*GetName(), *GetNameSafe(Controller)
-		));
 		CachedASC = nullptr;
 		return;
 	}
 
 	const bool bInkaNull = CachedPS->SelectedInka.IsNull();
-	ScreenLog(this, FColor::Green, FString::Printf(
-		TEXT("[InitAbilityActorInfo] %s | PS=%s | SelectedInkaNull=%d"),
-		*GetName(),
-		*GetNameSafe(CachedPS),
-		bInkaNull
-	));
 
 	if (!bInkaNull)
 	{
@@ -269,21 +230,18 @@ void AAmaruShooterCharacter::InitAbilityActorInfo()
 
 	CachedASC = CachedPS->GetAmaruAbilitySystemComponent();
 
-	ScreenLog(this, FColor::Green, FString::Printf(
-		TEXT("[InitAbilityActorInfo] ASC=%s | InkaDef=%s | IsLocal=%d"),
-		*GetNameSafe(CachedASC),
-		*GetNameSafe(InkaDefinition),
-		IsLocallyControlled()
-	));
-
 	if (!CachedASC)
 	{
-		ScreenLog(this, FColor::Red, TEXT("[InitAbilityActorInfo] NO ASC"));
 		return;
 	}
 
 	CachedASC->InitAbilityActorInfo(CachedPS, this);
-	ScreenLog(this, FColor::Green, TEXT("[InitAbilityActorInfo] InitAbilityActorInfo DONE"));
+
+	if (!StealthTagChangedHandle.IsValid())
+	{
+		StealthTagChangedHandle = CachedASC->RegisterGameplayTagEvent(AmaruTags::State_Stealth, EGameplayTagEventType::NewOrRemoved)
+			.AddUObject(this, &AAmaruShooterCharacter::OnStealthTagChanged);
+	}
 
 	if (UAmaruAttributeSet* AS = CachedPS->GetAttributeSet())
 	{
@@ -294,10 +252,9 @@ void AAmaruShooterCharacter::InitAbilityActorInfo()
 
 	if ((bASCChanged || bASChanged))
 	{
-		MoveSpeedChangedHandle.Reset();
-		ChargeAbility1ChangedHandle.Reset();
-		ChargeAbility2ChangedHandle.Reset();
-		AmmoChangedHandle.Reset();
+		// Desuscribir del ASC anterior antes de resetear los handles,
+		// si no las lambdas viejas siguen vivas en el otro ASC.
+		UnbindAttributeDelegates();
 
 		BoundASC = CachedASC;
 		BoundAS  = AS;
@@ -449,18 +406,34 @@ void AAmaruShooterCharacter::GiveAbilitiesFromDefinition()
 
 	if (GrantedAbilityHandles.Num() > 0) return;
 
+	// Deathmatch: solo arma primaria y recarga, sin kit de héroe.
+	bool bWeaponsOnly = false;
+	if (const AAmaruGameMode* GM = GetWorld()->GetAuthGameMode<AAmaruGameMode>())
+	{
+		bWeaponsOnly = !GM->bHeroAbilitiesEnabled;
+	}
+
 	for (const FAmaruGrantedAbility& Entry : InkaDefinition->Abilities)
 	{
 		if (!Entry.AbilityClass) continue;
+
+		if (bWeaponsOnly &&
+			Entry.InputID != static_cast<int32>(EAmaruAbilityInputID::PrimaryFire) &&
+			Entry.InputID != static_cast<int32>(EAmaruAbilityInputID::Reload))
+		{
+			continue;
+		}
 
 		FGameplayAbilitySpec Spec(Entry.AbilityClass, Entry.Level, Entry.InputID, this);
 		FGameplayAbilitySpecHandle Handle = ASC->GiveAbility(Spec);
 		GrantedAbilityHandles.Add(Handle);
 	}
 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(GetPlayerState(), FGameplayTag::RequestGameplayTag(FName("Event.GrantedAbility")), FGameplayEventData());
-	FGameplayAbilitySpec Spec(EquipWeaponAbility, 1, -1, this);
-	FGameplayAbilitySpecHandle Handle = ASC->GiveAbility(Spec);
-	EquipWeaponHandle = Handle;
+	if (EquipWeaponAbility)
+	{
+		FGameplayAbilitySpec Spec(EquipWeaponAbility, 1, -1, this);
+		EquipWeaponHandle = ASC->GiveAbility(Spec);
+	}
 	FGameplayEventData EventDataWeapon;
 	EventDataWeapon.TargetTags = FGameplayTagContainer{ InkaDefinition->WeaponTag };
 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(GetPlayerState(), FGameplayTag::RequestGameplayTag(FName("Event.Weapon.Equip")), EventDataWeapon);
@@ -471,19 +444,10 @@ void AAmaruShooterCharacter::ApplyStartupEffectsFromDefinition()
 	if (!HasAuthority()) return;
 	if (!InkaDefinition) return;
 
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("ApplyStartupEffectsFromDefinition called!"));
-
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
 	if (!ASC) return;
 
-	for (const FActiveGameplayEffectHandle& H : StartupEffectHandles)
-	{
-		if (H.IsValid())
-		{
-			ASC->RemoveActiveGameplayEffect(H);
-		}
-	}
-	StartupEffectHandles.Reset();
+	RemoveStartupEffects();
 
 	for (const auto EffectClass : InkaDefinition->StartupEffects)
 	{
@@ -504,6 +468,23 @@ void AAmaruShooterCharacter::ApplyStartupEffectsFromDefinition()
 
 }
 
+void AAmaruShooterCharacter::RemoveStartupEffects()
+{
+	if (!HasAuthority()) return;
+
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	if (!ASC) return;
+
+	for (const FActiveGameplayEffectHandle& H : StartupEffectHandles)
+	{
+		if (H.IsValid())
+		{
+			ASC->RemoveActiveGameplayEffect(H);
+		}
+	}
+	StartupEffectHandles.Reset();
+}
+
 void AAmaruShooterCharacter::ClearGrantedAbilities()
 {
 	if (!HasAuthority()) return;
@@ -516,7 +497,11 @@ void AAmaruShooterCharacter::ClearGrantedAbilities()
 		ASC->ClearAbility(Handle);
 	}
 	GrantedAbilityHandles.Reset();
-	ASC->ClearAbility(EquipWeaponHandle);
+	if (EquipWeaponHandle.IsValid())
+	{
+		ASC->ClearAbility(EquipWeaponHandle);
+		EquipWeaponHandle = FGameplayAbilitySpecHandle();
+	}
 }
 
 void AAmaruShooterCharacter::Move(const FInputActionValue& Value)

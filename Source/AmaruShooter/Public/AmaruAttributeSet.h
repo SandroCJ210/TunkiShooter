@@ -13,6 +13,12 @@ GAMEPLAYATTRIBUTE_VALUE_GETTER(PropertyName) \
 GAMEPLAYATTRIBUTE_VALUE_SETTER(PropertyName) \
 GAMEPLAYATTRIBUTE_VALUE_INITTER(PropertyName)
 
+class AAmaruPlayerState;
+
+// Servidor: se dispara cada vez que un jugador inflige daño real (post escudo).
+// Lo usa el Muro de la Pachamama para dar escudo a aliados que dañan.
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnAmaruDamageDealt, AAmaruPlayerState* /*Source*/, float /*Damage*/);
+
 UCLASS()
 class AMARUSHOOTER_API UAmaruAttributeSet : public UAttributeSet
 {
@@ -68,10 +74,51 @@ public:
 	FGameplayAttributeData MaxAmmo;
 	ATTRIBUTE_ACCESSORS(UAmaruAttributeSet, MaxAmmo)
 
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes|Ultimate", ReplicatedUsing = OnRep_UltimateCharge)
+	FGameplayAttributeData UltimateCharge;
+	ATTRIBUTE_ACCESSORS(UAmaruAttributeSet, UltimateCharge)
+
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes|Ultimate", ReplicatedUsing = OnRep_MaxUltimateCharge)
+	FGameplayAttributeData MaxUltimateCharge;
+	ATTRIBUTE_ACCESSORS(UAmaruAttributeSet, MaxUltimateCharge)
+
+	// Meta-atributo: los GameplayEffects de daño deben modificar IncomingDamage,
+	// no Health directamente. Solo existe en el servidor, no se replica.
+	// PostGameplayEffectExecute lo consume: primero Shield, el resto a Health.
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes|Meta")
+	FGameplayAttributeData IncomingDamage;
+	ATTRIBUTE_ACCESSORS(UAmaruAttributeSet, IncomingDamage)
+
+	// Meta-atributo espejo para curación: acredita HealingDone y carga de ult.
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes|Meta")
+	FGameplayAttributeData IncomingHealing;
+	ATTRIBUTE_ACCESSORS(UAmaruAttributeSet, IncomingHealing)
+
+	// Carga de ultimate ganada por punto de daño/curación.
+	UPROPERTY(EditAnywhere, Category = "Attributes|Ultimate")
+	float UltChargePerDamageDealt = 1.f;
+
+	UPROPERTY(EditAnywhere, Category = "Attributes|Ultimate")
+	float UltChargePerHealingDone = 0.5f;
+
+	// Multiplicador de daño recibido con State.Protected (domo/dash).
+	UPROPERTY(EditAnywhere, Category = "Attributes|Damage")
+	float ProtectedDamageMultiplier = 0.65f;
+
+	static FOnAmaruDamageDealt OnDamageDealt;
+
 	virtual void PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue) override;
 	virtual void PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data) override;
 
+	// Restaura vitales al respawnear. El AttributeSet vive en el PlayerState y
+	// sobrevive a la muerte del pawn: sin esto se respawnea con 0 de vida.
+	void ResetVitals();
+
 protected:
+
+	void CheckForDeath(const FGameplayEffectModCallbackData& Data);
+
+	bool bOutOfHealth = false;
 
 	UFUNCTION()
 	void OnRep_Health(const FGameplayAttributeData& OldValue);
@@ -108,6 +155,12 @@ protected:
 
 	UFUNCTION()
 	void OnRep_MaxAmmo(const FGameplayAttributeData& OldValue);
+
+	UFUNCTION()
+	void OnRep_UltimateCharge(const FGameplayAttributeData& OldValue);
+
+	UFUNCTION()
+	void OnRep_MaxUltimateCharge(const FGameplayAttributeData& OldValue);
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 };

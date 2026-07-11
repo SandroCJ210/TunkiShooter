@@ -7,6 +7,7 @@
 #include "../Enums.h"
 #include "WeaponBase.generated.h"
 
+class UStaticMeshComponent;
 class UGameplayAbility;
 
 UCLASS()

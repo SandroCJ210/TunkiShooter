@@ -6,6 +6,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputMappingContext.h"
 #include "AmaruShooter/AmaruPlayerState.h"
+#include "UI/AmaruHUDWidget.h"
 
 void AAmaruPlayerController::CreateHUDInka()
 {
@@ -37,6 +38,9 @@ void AAmaruPlayerController::TryBindHUDToASC()
     if (!HUDInka) CreateHUDInka();
     if (!HUDInka) return;
 
+    // Los HUD basados en UAmaruHUDWidget se vinculan solos al ASC en C++.
+    if (HUDInka->IsA<UAmaruHUDWidget>()) return;
+
     AAmaruPlayerState* APS = GetPlayerState<AAmaruPlayerState>();
     if (!APS) return;
 
@@ -62,8 +66,6 @@ void AAmaruPlayerController::BeginPlay()
             Subsystem->AddMappingContext(DefaultMappingContext, 0);
         }
     }
-    UE_LOG(LogTemp, Warning, TEXT("PC %s Local=%d DefaultMappingContext=%s"),
-        *GetName(), IsLocalPlayerController(), *GetNameSafe(DefaultMappingContext));
     CreateHUDInka();
     TryBindHUDToASC();
 }

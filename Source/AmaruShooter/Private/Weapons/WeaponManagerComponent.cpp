@@ -4,18 +4,17 @@
 #include "Weapons/WeaponManagerComponent.h"
 
 #include "AmaruAbilitySystemComponent.h"
+#include "GameplayAbilitySpecHandle.h"
 #include "GameplayAbilitySpec.h"
+#include "Net/UnrealNetwork.h"
 #include "Weapons/WeaponBase.h"
 #include "../AmaruShooterCharacter.h"
 
 // Sets default values for this component's properties
 UWeaponManagerComponent::UWeaponManagerComponent()
 {
-	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
-	// off to improve performance if you don't need them.
-	PrimaryComponentTick.bCanEverTick = true;
-
-	// ...
+	PrimaryComponentTick.bCanEverTick = false;
+	SetIsReplicatedByDefault(true);
 }
 
 
@@ -26,20 +25,46 @@ void UWeaponManagerComponent::BeginPlay()
 
 
 	OwnerChar = Cast<AAmaruShooterCharacter>(GetOwner());
-	
+
 }
 
-static FString NetModeToString(const UWorld* World)
+void UWeaponManagerComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	if (!World) return TEXT("NoWorld");
-
-	switch (World->GetNetMode())
+	// El arma es un actor aparte con Owner = personaje; si el personaje muere
+	// sin esto, el arma queda huérfana en el mundo.
+	if (CanModifyWeaponState())
 	{
-	case NM_Standalone:      return TEXT("Standalone");
-	case NM_ListenServer:    return TEXT("ListenServer");
-	case NM_DedicatedServer: return TEXT("DedicatedServer");
-	case NM_Client:          return TEXT("Client");
-	default:                 return TEXT("Unknown");
+		UnequipWeapon();
+	}
+	Super::EndPlay(EndPlayReason);
+}
+
+void UWeaponManagerComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(UWeaponManagerComponent, CurrentWeapon);
+}
+
+void UWeaponManagerComponent::OnRep_CurrentWeapon()
+{
+	// En clientes remotos el equip solo ocurre en el servidor; aquí aplicamos
+	// la parte cosmética (AnimInstance del mesh 3P) cuando llega la réplica.
+	if (!OwnerChar)
+	{
+		OwnerChar = Cast<AAmaruShooterCharacter>(GetOwner());
+	}
+	if (!OwnerChar || !OwnerChar->GetMesh3P())
+	{
+		return;
+	}
+
+	if (CurrentWeapon)
+	{
+		OwnerChar->GetMesh3P()->SetAnimInstanceClass(CurrentWeapon->WeaponConfig.AnimationClass);
+	}
+	else
+	{
+		OwnerChar->GetMesh3P()->SetAnimInstanceClass(DefaultAnimClass);
 	}
 }
 
@@ -50,39 +75,48 @@ void UWeaponManagerComponent::EquipWeapon(TSubclassOf<AWeaponBase> WeaponClass)
 		OwnerChar = Cast<AAmaruShooterCharacter>(GetOwner());
 		if (!OwnerChar)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("WeaponManagerComponent: Owner is not AAmaruShooterCharacter!"));
 			return;
 		}
 	}
-	if (OwnerChar)
+
+	if (!CanModifyWeaponState())
 	{
+		return;
+	}
+
+	if (CurrentWeapon && CurrentWeapon->GetClass() == WeaponClass)
+	{
+		return;
+	}
+
+	UnequipWeapon();
+
+	if (OwnerChar && WeaponClass)
+	{
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner = OwnerChar;
+		SpawnParams.Instigator = Cast<APawn>(GetOwner());
+		CurrentWeapon = GetWorld()->SpawnActor<AWeaponBase>(WeaponClass, SpawnParams);
 		if (CurrentWeapon)
 		{
-			if (CurrentWeapon->GetClass() == WeaponClass)
-			{
-				UnequipWeapon();
-				return;
-			}
+			FAttachmentTransformRules AttachmentRules(EAttachmentRule::SnapToTarget, true);
+			CurrentWeapon->AttachToComponent(OwnerChar->GetMesh3P(), AttachmentRules, CurrentWeapon->WeaponConfig.EquippedSocketName);
+			OwnerChar->GetMesh3P()->SetAnimInstanceClass(CurrentWeapon->WeaponConfig.AnimationClass);
 		}
-		if (WeaponClass)
-		{
-			FActorSpawnParameters SpawnParams;
-			SpawnParams.Owner = OwnerChar;
-			SpawnParams.Instigator = Cast<APawn>(GetOwner());
-			CurrentWeapon = GetWorld()->SpawnActor<AWeaponBase>(WeaponClass, SpawnParams);
-			if (CurrentWeapon)
-			{
-				FAttachmentTransformRules AttachmentRules(EAttachmentRule::SnapToTarget, true);
-				CurrentWeapon->AttachToComponent(OwnerChar->GetMesh3P(), AttachmentRules, CurrentWeapon->WeaponConfig.EquippedSocketName);
-				OwnerChar->GetMesh3P()->SetAnimInstanceClass(CurrentWeapon->WeaponConfig.AnimationClass);
-			}
-		}
-		GrantAbility();
 	}
+
+	GrantAbilities();
 }
 
 void UWeaponManagerComponent::UnequipWeapon()
 {
+	if (!CanModifyWeaponState())
+	{
+		return;
+	}
+
+	ClearGrantedAbilities();
+
 	if (CurrentWeapon)
 	{
 		CurrentWeapon->Destroy();
@@ -103,23 +137,54 @@ FVector UWeaponManagerComponent::GetSpawnBulletSocket() const
 	return FVector::ZeroVector;
 }
 
-void UWeaponManagerComponent::GrantAbility()
+void UWeaponManagerComponent::GrantAbilities()
 {
+	ClearGrantedAbilities();
+
+	if (!CurrentWeapon || !OwnerChar)
+	{
+		return;
+	}
+
 	const auto ASC = OwnerChar->GetAmaruAbilitySystemComponent();
 	for (const auto& AbilityClass : CurrentWeapon->WeaponConfig.AbilitiesToGrant)
 	{
 		if (ASC && AbilityClass)
 		{
-			ASC->GiveAbility(FGameplayAbilitySpec(AbilityClass, 1, static_cast<int32>(EAmaruAbilityInputID::PrimaryFire)));
+			const FGameplayAbilitySpecHandle Handle =
+				ASC->GiveAbility(FGameplayAbilitySpec(AbilityClass, 1, static_cast<int32>(EAmaruAbilityInputID::PrimaryFire)));
+			GrantedWeaponAbilityHandles.Add(Handle);
 		}
 	}
 }
 
-// Called every frame
-void UWeaponManagerComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+void UWeaponManagerComponent::ClearGrantedAbilities()
 {
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	if (!OwnerChar)
+	{
+		return;
+	}
 
-	// ...
+	const auto ASC = OwnerChar->GetAmaruAbilitySystemComponent();
+	if (!ASC)
+	{
+		GrantedWeaponAbilityHandles.Reset();
+		return;
+	}
+
+	for (const FGameplayAbilitySpecHandle& Handle : GrantedWeaponAbilityHandles)
+	{
+		if (Handle.IsValid())
+		{
+			ASC->ClearAbility(Handle);
+		}
+	}
+
+	GrantedWeaponAbilityHandles.Reset();
+}
+
+bool UWeaponManagerComponent::CanModifyWeaponState() const
+{
+	return OwnerChar && OwnerChar->HasAuthority();
 }
 
